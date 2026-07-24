@@ -63,7 +63,7 @@ different version.
 explicitly rather than using `Pkg.test()`. To run the suite locally:
 
 ```bash
-julia --project=test -e 'using Pkg; Pkg.develop([PackageSpec(path="."), PackageSpec(url="https://github.com/karimn/RVars.jl")]); Pkg.instantiate()'
+julia --project=test -e 'using Pkg; Pkg.add(url="https://github.com/karimn/RVars.jl"); Pkg.develop(path="."); Pkg.instantiate()'
 julia --project=test test/runtests.jl
 ```
 
