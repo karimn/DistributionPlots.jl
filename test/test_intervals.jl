@@ -31,3 +31,21 @@ using Test
     @test Tables.istable(rows)
     @test Tables.rowaccess(rows)
 end
+
+@testset "intervals: mode + disjoint hdi" begin
+    using Distributions
+    # Bimodal mixture: two well-separated Normals → hdi returns TWO pieces at 0.95.
+    mix = MixtureModel([Normal(-3, 0.4), Normal(3, 0.4)], [0.5, 0.5])
+    draws = reduce(vcat, (rand(Normal(-3,0.4), 5000), rand(Normal(3,0.4), 5000)))
+    rows = point_interval(draws; widths=[0.95], interval=:hdi, point=:median)
+    @test length(rows) ≥ 2                       # disjoint → multiple rows
+    @test all(r -> r.interval == :hdi && r.width == 0.95, rows)
+    # the two pieces straddle the two modes
+    los = sort(getproperty.(rows, :lower))
+    @test los[1] < 0 && los[end] > 0
+
+    # mode of a right-skewed sample is left of the mean
+    skew = rand(Exponential(1.0), 20000)
+    rmode = point_interval(skew; widths=[0.9], point=:mode)
+    @test rmode[1].value < mean(skew)
+end

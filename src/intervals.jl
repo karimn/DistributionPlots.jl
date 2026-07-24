@@ -79,3 +79,72 @@ function _hdci(d::AnalyticDist, w::Real)
     end
     return (quantile_at(d, best_u), quantile_at(d, best_u + w))
 end
+
+function _mode(d::SampleDist)
+    lo, hi = support(d)
+    xs, dens = kde_reflected(d.samples; bounds=(lo, hi), npoints=1024)
+    return xs[argmax(dens)]
+end
+_mode(d::AnalyticDist) = mode(d.dist)
+
+"""
+    _hdi(d, w) -> Vector{(lower, upper)}
+
+Highest-density interval: the set `{x : f(x) ≥ c}` whose total mass is `w`,
+found by lowering a horizontal threshold on the (KDE for samples, exact for
+analytic) density until the covered probability reaches `w`. May be disjoint.
+"""
+function _hdi(d::SampleDist, w::Real)
+    lo, hi = support(d)
+    xs, dens = kde_reflected(d.samples; bounds=(lo, hi), npoints=1024)
+    return _hdi_from_density(xs, dens, w)
+end
+
+function _hdi(d::AnalyticDist, w::Real)
+    lo, hi = support(d; trim=1e-4)
+    xs = collect(range(lo, hi; length=2048))
+    dens = pdf.(d.dist, xs)
+    return _hdi_from_density(xs, dens, w)
+end
+
+# Threshold-sweep on a density grid. Returns contiguous runs above the threshold
+# whose trapezoidal mass first reaches `w`.
+function _hdi_from_density(xs::Vector{Float64}, dens::Vector{Float64}, w::Real)
+    dx = diff(xs)
+    total = sum((dens[2:end] .+ dens[1:end-1]) ./ 2 .* dx)
+    dens = dens ./ total                       # normalise to unit mass on grid
+    order = sortperm(dens; rev=true)
+    thresh = 0.0
+    covered = 0.0
+    # accumulate cells from highest density down until mass ≥ w
+    cellmass = similar(dens)
+    cellmass[1] = 0.0
+    @inbounds for i in 2:length(xs)
+        cellmass[i] = (dens[i] + dens[i-1]) / 2 * dx[i-1]
+    end
+    keep = falses(length(xs))
+    for idx in order
+        keep[idx] = true
+        covered += idx == 1 ? 0.0 : cellmass[idx]
+        thresh = dens[idx]
+        covered ≥ w && break
+    end
+    # merge kept indices into contiguous (lower, upper) runs
+    pieces = Tuple{Float64,Float64}[]
+    i = 1
+    n = length(xs)
+    while i ≤ n
+        if keep[i]
+            j = i
+            while j < n && keep[j+1]
+                j += 1
+            end
+            push!(pieces, (xs[i], xs[j]))
+            i = j + 1
+        else
+            i += 1
+        end
+    end
+    isempty(pieces) && push!(pieces, (xs[argmax(dens)], xs[argmax(dens)]))
+    return pieces
+end
