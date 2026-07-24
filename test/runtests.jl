@@ -5,4 +5,6 @@ using Test
     @testset "smoke" begin
         @test DistributionPlots isa Module
     end
+
+    include("test_interface.jl")
 end

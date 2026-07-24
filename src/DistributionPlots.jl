@@ -7,8 +7,8 @@ using KernelDensity
 using Tables
 using Makie
 
+include("interface.jl")
 # includes are added as later tasks create the files:
-# include("interface.jl")
 # include("density.jl")
 # include("intervals.jl")
 # include("slabs.jl")
@@ -17,5 +17,7 @@ using Makie
 # include("recipes/slabinterval.jl")
 # include("recipes/dots.jl")
 # include("recipes/lineribbon.jl")
+
+export asdist
 
 end # module
