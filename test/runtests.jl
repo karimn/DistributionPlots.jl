@@ -17,4 +17,5 @@ using Test
     include("test_slabs.jl")
     include("test_dotlayout.jl")
     include("test_geometry.jl")
+    include("test_golden.jl")
 end

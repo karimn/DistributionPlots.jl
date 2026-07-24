@@ -51,20 +51,44 @@ function _interval_pieces(d::AbstractDist, w::Real, interval::Symbol)
     end
 end
 
-# Highest-density *continuous* interval: narrowest contiguous window holding mass w.
+# Type-5 (Hyndman-Fan) empirical quantile function via linear interpolation on
+# sorted x: h = n*p + 1/2, clamped to [1, n]. Matches ggdist's `weighted_quantile_fun`
+# default (type = 5), which is the quantile function `hdci` optimises over.
+function _quantile5(x::AbstractVector{<:Real}, p::Real)
+    n = length(x)
+    h = clamp(n * p + 0.5, 1.0, float(n))
+    lo = floor(Int, h)
+    hi = min(lo + 1, n)
+    frac = h - lo
+    return x[lo] + frac * (x[hi] - x[lo])
+end
+
+# Highest-density *continuous* interval: narrowest window [Q(p), Q(p+w)] over the
+# type-5 empirical quantile function Q, matching ggdist's `hdci_.numeric` (which
+# minimises Q(p+w) - Q(p) over p ∈ [0, 1-w] via continuous optimisation). Since Q
+# is piecewise-linear in p, span(p) = Q(p+w) - Q(p) is also piecewise-linear, so
+# its global minimum is attained at a breakpoint of Q(p) or Q(p+w); we evaluate
+# exactly those candidates instead of a generic numerical optimiser.
 function _hdci(d::SampleDist, w::Real)
     x = sort(d.samples)
     n = length(x)
-    k = max(1, round(Int, w * n))
-    k ≥ n && return (x[1], x[end])
-    best_lo, best_hi, best_span = x[1], x[k], x[k] - x[1]
-    for i in 1:(n - k)
-        span = x[i + k] - x[i]
+    w = float(w)
+    qf(p) = _quantile5(x, p)
+    cands = Float64[0.0, 1 - w]
+    for k in 1:n
+        pk = (k - 0.5) / n
+        (0 ≤ pk ≤ 1 - w) && push!(cands, pk)
+        pk2 = pk - w
+        (0 ≤ pk2 ≤ 1 - w) && push!(cands, pk2)
+    end
+    best_p, best_span = 0.0, Inf
+    for p in cands
+        span = qf(p + w) - qf(p)
         if span < best_span
-            best_span, best_lo, best_hi = span, x[i], x[i + k]
+            best_span, best_p = span, p
         end
     end
-    return (best_lo, best_hi)
+    return (qf(best_p), qf(best_p + w))
 end
 
 # Analytic hdci: minimise (quantile(u+w) - quantile(u)) over u in [0, 1-w].
