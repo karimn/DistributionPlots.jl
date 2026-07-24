@@ -1,4 +1,4 @@
-# PlotDist.jl — Design Specification
+# DistributionPlots.jl — Design Specification
 
 **Date:** 2026-07-24
 **Status:** Approved design, pre-implementation
@@ -6,7 +6,7 @@
 
 ## Purpose
 
-`PlotDist.jl` provides Makie plots and recipes that mimic R's
+`DistributionPlots.jl` provides Makie plots and recipes that mimic R's
 [`ggdist`](https://mjskay.github.io/ggdist/) — slab, interval, pointinterval,
 lineribbon, and the dots/dotsinterval family — for visualizing distributions
 and uncertainty. It plots both **sample-based** random variables (primarily
@@ -294,11 +294,11 @@ multimodality was possible → just one interval.
 
 | Extension | Weakdep | Provides | If not loaded |
 |---|---|---|---|
-| `PlotDistRandomDrawsExt` | `RandomDraws` | `convert_arguments(::Type{<:SlabInterval}, ::RandomDraw)`; scalar RV → 1 position, length-`k` vector RV → `k` positions; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
-| `PlotDistMCMCChainsExt` | `MCMCChains` | `convert_arguments(..., ::Chains)`, routed through RandomDraws' existing `Chains` conversion (not reimplemented) | `Chains` not plottable |
-| `PlotDistAlgebraOfGraphicsExt` | `AlgebraOfGraphics` | `visual(HalfEye)` compatibility | recipes still work directly |
+| `DistributionPlotsRandomDrawsExt` | `RandomDraws` | `convert_arguments(::Type{<:SlabInterval}, ::RandomDraw)`; scalar RV → 1 position, length-`k` vector RV → `k` positions; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
+| `DistributionPlotsMCMCChainsExt` | `MCMCChains` | `convert_arguments(..., ::Chains)`, routed through RandomDraws' existing `Chains` conversion (not reimplemented) | `Chains` not plottable |
+| `DistributionPlotsAlgebraOfGraphicsExt` | `AlgebraOfGraphics` | `visual(HalfEye)` compatibility | recipes still work directly |
 
-Extensions are kept **separate** (not one combined `PlotDistStatsExt`) so that
+Extensions are kept **separate** (not one combined `DistributionPlotsStatsExt`) so that
 loading `MCMCChains` without `RandomDraws` — or vice versa — can't break the
 other. Chains support routing through RandomDraws means a Chains-axis-order bug
 (the class of bug RandomDraws' own CLAUDE.md documents) can only exist in one
@@ -307,11 +307,11 @@ place.
 ## File layout (planned)
 
 ```
-PlotDist.jl/
+DistributionPlots.jl/
 ├── Project.toml
 ├── README.md
 ├── src/
-│   ├── PlotDist.jl          # module, includes, exports
+│   ├── DistributionPlots.jl          # module, includes, exports
 │   ├── interface.jl         # SampleDist / AnalyticDist, convert_arguments
 │   ├── intervals.jl         # point_interval (qi/hdci/hdi), point summaries
 │   ├── density.jl           # KDE incl. boundary reflection
@@ -323,9 +323,9 @@ PlotDist.jl/
 │       ├── dots.jl          # dotsinterval / dots / spike
 │       └── lineribbon.jl    # separate engine
 ├── ext/
-│   ├── PlotDistRandomDrawsExt/
-│   ├── PlotDistMCMCChainsExt/
-│   └── PlotDistAlgebraOfGraphicsExt/
+│   ├── DistributionPlotsRandomDrawsExt/
+│   ├── DistributionPlotsMCMCChainsExt/
+│   └── DistributionPlotsAlgebraOfGraphicsExt/
 └── test/
     ├── runtests.jl
     ├── fixtures/            # committed R-exported golden data
