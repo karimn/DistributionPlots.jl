@@ -16,4 +16,5 @@ using Test
     include("test_intervals.jl")
     include("test_slabs.jl")
     include("test_dotlayout.jl")
+    include("test_geometry.jl")
 end
