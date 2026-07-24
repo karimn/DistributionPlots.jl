@@ -14,4 +14,5 @@ using Test
     include("test_interface.jl")
     include("test_density.jl")
     include("test_intervals.jl")
+    include("test_slabs.jl")
 end

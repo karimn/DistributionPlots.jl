@@ -10,8 +10,8 @@ using Makie
 include("interface.jl")
 include("density.jl")
 include("intervals.jl")
+include("slabs.jl")
 # includes are added as later tasks create the files:
-# include("slabs.jl")
 # include("dotlayout.jl")
 # include("geometry.jl")
 # include("recipes/slabinterval.jl")
@@ -20,5 +20,6 @@ include("intervals.jl")
 
 export asdist
 export point_interval
+export slab_curve
 
 end # module
