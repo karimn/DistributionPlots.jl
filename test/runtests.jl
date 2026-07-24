@@ -7,4 +7,5 @@ using Test
     end
 
     include("test_interface.jl")
+    include("test_density.jl")
 end

@@ -8,8 +8,8 @@ using Tables
 using Makie
 
 include("interface.jl")
+include("density.jl")
 # includes are added as later tasks create the files:
-# include("density.jl")
 # include("intervals.jl")
 # include("slabs.jl")
 # include("dotlayout.jl")
