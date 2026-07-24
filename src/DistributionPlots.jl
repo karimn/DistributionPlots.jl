@@ -13,8 +13,8 @@ include("intervals.jl")
 include("slabs.jl")
 include("dotlayout.jl")
 include("geometry.jl")
+include("recipes/slabinterval.jl")
 # includes are added as later tasks create the files:
-# include("recipes/slabinterval.jl")
 # include("recipes/dots.jl")
 # include("recipes/lineribbon.jl")
 
@@ -22,5 +22,6 @@ export asdist
 export point_interval
 export slab_curve
 export dot_layout
+export slabinterval, slabinterval!, SlabInterval
 
 end # module
