@@ -10,7 +10,7 @@
 [`ggdist`](https://mjskay.github.io/ggdist/) — slab, interval, pointinterval,
 lineribbon, and the dots/dotsinterval family — for visualizing distributions
 and uncertainty. It plots both **sample-based** random variables (primarily
-[`RandomDraws.jl`](https://github.com/karimn/RandomDraws.jl)'s `RandomDraw`, the
+[`RVars.jl`](https://github.com/karimn/RVars.jl)'s `RVar`, the
 Julia analog of `posterior::rvar`) and **analytic** distributions
 (`Distributions.jl`), through one interface, the way ggdist accepts both `rvar`
 and `distributional` objects.
@@ -34,7 +34,7 @@ are deliberate and documented below.
 - **Point/interval summaries** — `qi` (equal-tailed quantile interval), `hdci`
   (highest-density continuous interval), `hdi` (highest-density interval, may be
   disjoint); point summaries `mean`, `median`, `mode`.
-- **Four input types** through one interface: `RandomDraw`, raw
+- **Four input types** through one interface: `RVar`, raw
   `AbstractVector`/`AbstractMatrix` of samples, `Distributions.Distribution`,
   and `MCMCChains.Chains`. Plus **pre-summarised** point/lower/upper data
   (ggdist's `geom_` path).
@@ -85,7 +85,7 @@ possible.
 Every accepted input normalises — **at the `convert_arguments` boundary** — to
 one of two internal types, each answering the same four questions:
 
-| Method | `SampleDist` (RandomDraw / Vector / Chains) | `AnalyticDist` (Distributions.jl) |
+| Method | `SampleDist` (RVar / Vector / Chains) | `AnalyticDist` (Distributions.jl) |
 |---|---|---|
 | `support(d)` | `(minimum, maximum)` of draws | `Distributions.support`, trimmed for infinite tails to a quantile cutoff |
 | `quantile_at(d, p)` | `StatsBase.quantile` (type-7, matches R's default) | `Distributions.quantile` (exact) |
@@ -195,7 +195,7 @@ idiomatic:
 **Refinements folded in:**
 1. **Input normalisation goes through `convert_arguments`** — Makie's designated
    hook for accepting custom input types — not a bespoke pre-step. Core defines
-   it for `Distribution` and `AbstractVector`; extensions add `RandomDraw` and
+   it for `Distribution` and `AbstractVector`; extensions add `RVar` and
    `Chains`.
    **Mechanism caveat:** Makie `@recipe` generates concrete `Plot{f}` types that
    do *not* share a user-defined supertype (the same "recipe types can't inherit"
@@ -203,7 +203,7 @@ idiomatic:
    for `SlabInterval` does **not** automatically cover `HalfEye`, `Eye`, etc.
    Each **public** recipe type therefore registers its own `convert_arguments`,
    all delegating to one shared converter function (a small `@eval`/macro loop
-   over the public recipe types, mirroring how RandomDraws metaprograms its
+   over the public recipe types, mirroring how RVars metaprograms its
    elementwise ops). This is real boilerplate, generated once — not a single
    method covering the family.
 2. **Stat computation is wrapped in `lift`/Observables** so the recipe is
@@ -310,14 +310,14 @@ multimodality was possible → just one interval.
 
 | Extension | Weakdep | Provides | If not loaded |
 |---|---|---|---|
-| `DistributionPlotsRandomDrawsExt` | `RandomDraws` | `convert_arguments(P, ::RandomDraw)` for each public recipe type `P` (via the shared converter); scalar RV → 1 position, length-`k` vector RV → `k` positions at integer `1:k`; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
-| `DistributionPlotsMCMCChainsExt` | `MCMCChains` | `convert_arguments(..., ::Chains)`, routed through RandomDraws' existing `Chains` conversion (not reimplemented) | `Chains` not plottable |
+| `DistributionPlotsRVarsExt` | `RVars` | `convert_arguments(P, ::RVar)` for each public recipe type `P` (via the shared converter); scalar RV → 1 position, length-`k` vector RV → `k` positions at integer `1:k`; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
+| `DistributionPlotsMCMCChainsExt` | `MCMCChains` | `convert_arguments(..., ::Chains)`, routed through RVars' existing `Chains` conversion (not reimplemented) | `Chains` not plottable |
 | `DistributionPlotsAlgebraOfGraphicsExt` | `AlgebraOfGraphics` | `visual(HalfEye)` compatibility | recipes still work directly |
 
 Extensions are kept **separate** (not one combined `DistributionPlotsStatsExt`) so that
-loading `MCMCChains` without `RandomDraws` — or vice versa — can't break the
-other. Chains support routing through RandomDraws means a Chains-axis-order bug
-(the class of bug RandomDraws' own CLAUDE.md documents) can only exist in one
+loading `MCMCChains` without `RVars` — or vice versa — can't break the
+other. Chains support routing through RVars means a Chains-axis-order bug
+(the class of bug RVars' own CLAUDE.md documents) can only exist in one
 place.
 
 ## File layout (planned)
@@ -339,7 +339,7 @@ DistributionPlots.jl/
 │       ├── dots.jl          # dotsinterval / dots / spike
 │       └── lineribbon.jl    # separate engine
 ├── ext/
-│   ├── DistributionPlotsRandomDrawsExt/
+│   ├── DistributionPlotsRVarsExt/
 │   ├── DistributionPlotsMCMCChainsExt/
 │   └── DistributionPlotsAlgebraOfGraphicsExt/
 └── test/
@@ -386,8 +386,8 @@ versions).
 - Julia `1.10+` — a deliberate choice, not a forced one. Julia 1.10 is the
   current LTS, so the floor excludes effectively no users, and it lets us use the
   latest `KernelDensity` (whose newest release requires 1.10) rather than pinning
-  an older one. Targeting 1.9 was considered (to match RandomDraws) but rejected:
-  1.9 is superseded by the 1.10 LTS and buys negligible reach. RandomDraws' own
+  an older one. Targeting 1.9 was considered (to match RVars) but rejected:
+  1.9 is superseded by the 1.10 LTS and buys negligible reach. RVars' own
   1.9 floor is independent and unaffected.
 - The package-extension mechanism (Julia `1.9+`) is comfortably satisfied.
 - Pinned reference tooling: ggdist `3.3.3`, posterior `1.6.1`.
