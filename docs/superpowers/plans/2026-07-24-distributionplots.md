@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Julia package of Makie recipes that mimic R's `ggdist` (slab, interval, pointinterval, lineribbon, dots) for visualizing `RandomDraws.jl` samples and `Distributions.jl` distributions through one interface.
+**Goal:** Build a Julia package of Makie recipes that mimic R's `ggdist` (slab, interval, pointinterval, lineribbon, dots) for visualizing `RVars.jl` samples and `Distributions.jl` distributions through one interface.
 
-**Architecture:** A pure statistics layer (`point_interval`, `slab_curve`, `dot_layout`, plus a KDE and a geometry transform) with zero Makie dependency is consumed by thin Makie recipes. One `slabinterval` parent recipe draws toggleable slab/interval/point sub-parts; `slab`/`interval`/`pointinterval`/`halfeye`/… are children that preset the toggles (ggdist's own "child = parent + defaults" mechanism). `lineribbon` and `dots` are separate engines. `RandomDraws`, `MCMCChains`, and `AlgebraOfGraphics` support ship as weakdep extensions.
+**Architecture:** A pure statistics layer (`point_interval`, `slab_curve`, `dot_layout`, plus a KDE and a geometry transform) with zero Makie dependency is consumed by thin Makie recipes. One `slabinterval` parent recipe draws toggleable slab/interval/point sub-parts; `slab`/`interval`/`pointinterval`/`halfeye`/… are children that preset the toggles (ggdist's own "child = parent + defaults" mechanism). `lineribbon` and `dots` are separate engines. `RVars`, `MCMCChains`, and `AlgebraOfGraphics` support ship as weakdep extensions.
 
 **Tech Stack:** Julia 1.10, Makie 0.24, KernelDensity, Distributions, StatsBase, Tables. R (ggdist 3.3.3 / posterior 1.6.1) for golden test fixtures. CairoMakie for headless smoke tests.
 
@@ -22,7 +22,7 @@ Every task's requirements implicitly include this section. Values are copied ver
   - `Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"`
   - `Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"`
 - **Weakdep UUIDs:**
-  - `RandomDraws = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"`
+  - `RVars = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"`
   - `MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"`
   - `AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"`
 - **Test-only UUIDs:** `CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"`, `Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"`, `Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"`.
@@ -54,7 +54,7 @@ DistributionPlots.jl/
 │       ├── dots.jl            # dotsinterval / dots recipes
 │       └── lineribbon.jl      # separate engine
 ├── ext/
-│   ├── DistributionPlotsRandomDrawsExt.jl
+│   ├── DistributionPlotsRVarsExt.jl
 │   ├── DistributionPlotsMCMCChainsExt.jl
 │   └── DistributionPlotsAlgebraOfGraphicsExt.jl
 └── test/
@@ -130,12 +130,12 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 [weakdeps]
 AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
-RandomDraws = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"
+RVars = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"
 
 [extensions]
 DistributionPlotsAlgebraOfGraphicsExt = "AlgebraOfGraphics"
 DistributionPlotsMCMCChainsExt = "MCMCChains"
-DistributionPlotsRandomDrawsExt = "RandomDraws"
+DistributionPlotsRVarsExt = "RVars"
 
 [compat]
 Distributions = "0.25"
@@ -150,12 +150,12 @@ julia = "1.10"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 MCMCChains = "c7f686f2-ff18-58e9-bc7b-31028e88f75d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-RandomDraws = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"
+RVars = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"
 AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test", "Random", "CairoMakie", "RandomDraws", "MCMCChains", "AlgebraOfGraphics"]
+test = ["Test", "Random", "CairoMakie", "RVars", "MCMCChains", "AlgebraOfGraphics"]
 ```
 
 Create `src/DistributionPlots.jl`:
@@ -193,7 +193,7 @@ Fix the placeholder assertion in `test/runtests.jl` Step 1 — replace the first
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `julia --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.test()'`
-Expected: PASS — `Test Summary: DistributionPlots.jl | 1 passed`. `RandomDraws` resolves from GitHub if not registered; if `Pkg.instantiate()` errors on `RandomDraws`, add it once with `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/karimn/RandomDraws.jl")'` then retry.
+Expected: PASS — `Test Summary: DistributionPlots.jl | 1 passed`. `RVars` resolves from GitHub if not registered; if `Pkg.instantiate()` errors on `RVars`, add it once with `julia --project=. -e 'using Pkg; Pkg.add(url="https://github.com/karimn/RVars.jl")'` then retry.
 
 - [ ] **Step 5: Create CI and commit**
 
@@ -1332,7 +1332,7 @@ using Makie
 
 # Shared converter: normalise any input to (positions, Vector{AbstractDist}).
 # A single distribution/sample-vector is placed at position 1. Extensions
-# (RandomDraws, MCMCChains) add methods that expand multi-element inputs to 1:k.
+# (RVars, MCMCChains) add methods that expand multi-element inputs to 1:k.
 _to_dist_args(x::Distributions.UnivariateDistribution) = ([1.0], AbstractDist[asdist(x)])
 _to_dist_args(x::AbstractVector{<:Real}) = ([1.0], AbstractDist[asdist(x)])
 function _to_dist_args(xs::AbstractVector{<:Distributions.UnivariateDistribution})
@@ -1363,7 +1363,7 @@ end
 end
 
 # Register convert_arguments for the base recipe. Task 12 loops this over all
-# public recipe types; the extensions add per-type methods for RandomDraw/Chains.
+# public recipe types; the extensions add per-type methods for RVar/Chains.
 Makie.convert_arguments(::Type{<:SlabInterval}, x::Distributions.UnivariateDistribution) =
     (_to_dist_args(x),)
 Makie.convert_arguments(::Type{<:SlabInterval}, x::AbstractVector{<:Real}) =
@@ -1815,16 +1815,16 @@ git commit -m "feat: lineribbon recipe with nested bands and central line"
 
 ---
 
-## Task 15: RandomDraws extension
+## Task 15: RVars extension
 
 **Files:**
-- Create: `ext/DistributionPlotsRandomDrawsExt.jl`
+- Create: `ext/DistributionPlotsRVarsExt.jl`
 - Create: `test/test_extensions.jl`
 - Modify: `test/runtests.jl` (include)
 
 **Interfaces:**
-- Consumes: `_to_dist_args`, all public recipe types (Tasks 10–14); `RandomDraws.RandomDraw`, `RandomDraws.draws`, `RandomDraws.variables`.
-- Produces: `convert_arguments(P, ::RandomDraw)` for every public recipe type `P`, plus a `_to_dist_args(::RandomDraw)` method: scalar RV → 1 position, length-`k` vector RV → positions `1:k`, `variables(x)` carried for tick labels (returned in a companion accessor).
+- Consumes: `_to_dist_args`, all public recipe types (Tasks 10–14); `RVars.RVar`, `RVars.draws`, `RVars.variables`.
+- Produces: `convert_arguments(P, ::RVar)` for every public recipe type `P`, plus a `_to_dist_args(::RVar)` method: scalar RV → 1 position, length-`k` vector RV → positions `1:k`, `variables(x)` carried for tick labels (returned in a companion accessor).
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1832,25 +1832,25 @@ Create `test/test_extensions.jl`:
 
 ```julia
 using DistributionPlots
-using RandomDraws
+using RVars
 using Makie, CairoMakie
 using Test
 
-@testset "RandomDraws extension" begin
+@testset "RVars extension" begin
     CairoMakie.activate!()
     # scalar RV: 1000 draws → one distribution at position 1
-    rv0 = RandomDraw(randn(1000))
+    rv0 = RVar(randn(1000))
     pos, dists = DistributionPlots._to_dist_args(rv0)
     @test pos == [1.0]
     @test length(dists) == 1
 
     # vector RV: 3 elements → positions 1:3
-    rv1 = RandomDraw(randn(1000, 3))
+    rv1 = RVar(randn(1000, 3))
     pos3, dists3 = DistributionPlots._to_dist_args(rv1)
     @test pos3 == [1.0, 2.0, 3.0]
     @test length(dists3) == 3
 
-    # recipes accept a RandomDraw directly
+    # recipes accept a RVar directly
     @test (halfeye(rv1) isa Makie.FigureAxisPlot)
     @test (pointinterval(rv1) isa Makie.FigureAxisPlot)
 end
@@ -1859,25 +1859,25 @@ end
 - [ ] **Step 2: Run test to verify it fails**
 
 Add `include("test_extensions.jl")` to `test/runtests.jl`. Run tests.
-Expected: FAIL — `_to_dist_args(::RandomDraw)` not defined (extension not written).
+Expected: FAIL — `_to_dist_args(::RVar)` not defined (extension not written).
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `ext/DistributionPlotsRandomDrawsExt.jl`:
+Create `ext/DistributionPlotsRVarsExt.jl`:
 
 ```julia
-module DistributionPlotsRandomDrawsExt
+module DistributionPlotsRVarsExt
 
 using DistributionPlots
 using DistributionPlots: _to_dist_args, AbstractDist, asdist
-using RandomDraws
-using RandomDraws: RandomDraw, draws, variables
+using RVars
+using RVars: RVar, draws, variables
 using Makie
 using Distributions
 
 # scalar RV (N=0): one distribution from all draws.
 # vector RV (N=1, length k): k distributions at integer positions 1:k.
-function DistributionPlots._to_dist_args(x::RandomDraw)
+function DistributionPlots._to_dist_args(x::RVar)
     raw = draws(x)                       # (ndraws, dims...) — axis 1 is draws
     if ndims(raw) == 1
         return ([1.0], AbstractDist[asdist(vec(raw))])
@@ -1893,7 +1893,7 @@ const _RECIPES = (SlabInterval, HalfEye, Eye, CcdfInterval, CdfInterval,
                   Spike, Dots, DotsInterval)
 
 for T in _RECIPES
-    @eval Makie.convert_arguments(::Type{<:$T}, x::RandomDraw) = (_to_dist_args(x),)
+    @eval Makie.convert_arguments(::Type{<:$T}, x::RVar) = (_to_dist_args(x),)
 end
 
 end # module
@@ -1902,13 +1902,13 @@ end # module
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `julia --project=. -e 'using Pkg; Pkg.test()'`
-Expected: PASS — `RandomDraws extension` green. The extension loads because the test target lists `RandomDraws`. If `draws(x)` shape differs, consult RandomDraws' README (`draws(x)` returns `(ndraws, dims...)`); a scalar RV backs a length-`ndraws` vector, a vector RV backs an `(ndraws, k)` matrix.
+Expected: PASS — `RVars extension` green. The extension loads because the test target lists `RVars`. If `draws(x)` shape differs, consult RVars' README (`draws(x)` returns `(ndraws, dims...)`); a scalar RV backs a length-`ndraws` vector, a vector RV backs an `(ndraws, k)` matrix.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add ext/DistributionPlotsRandomDrawsExt.jl test/test_extensions.jl test/runtests.jl
-git commit -m "feat: RandomDraws extension (RandomDraw → recipe inputs)"
+git add ext/DistributionPlotsRVarsExt.jl test/test_extensions.jl test/runtests.jl
+git commit -m "feat: RVars extension (RVar → recipe inputs)"
 ```
 
 ---
@@ -1920,8 +1920,8 @@ git commit -m "feat: RandomDraws extension (RandomDraw → recipe inputs)"
 - Modify: `test/test_extensions.jl` (Chains testset)
 
 **Interfaces:**
-- Consumes: public recipe types; `MCMCChains.Chains`. Routes through RandomDraws' `Chains` conversion, so this extension effectively requires both weakdeps at use time (it calls `RandomDraws.RandomDraw(::Chains)`).
-- Produces: `convert_arguments(P, ::Chains)` for every public recipe type, by converting `Chains → RandomDraw` then reusing the RandomDraws path.
+- Consumes: public recipe types; `MCMCChains.Chains`. Routes through RVars' `Chains` conversion, so this extension effectively requires both weakdeps at use time (it calls `RVars.RVar(::Chains)`).
+- Produces: `convert_arguments(P, ::Chains)` for every public recipe type, by converting `Chains → RVar` then reusing the RVars path.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1953,12 +1953,12 @@ module DistributionPlotsMCMCChainsExt
 using DistributionPlots
 using DistributionPlots: _to_dist_args
 using MCMCChains: Chains
-using RandomDraws: RandomDraw
+using RVars: RVar
 using Makie
 
-# Route Chains through RandomDraws' own Chains conversion (single tested path),
-# then reuse the RandomDraws _to_dist_args method.
-DistributionPlots._to_dist_args(chn::Chains) = _to_dist_args(RandomDraw(chn))
+# Route Chains through RVars' own Chains conversion (single tested path),
+# then reuse the RVars _to_dist_args method.
+DistributionPlots._to_dist_args(chn::Chains) = _to_dist_args(RVar(chn))
 
 const _RECIPES = (SlabInterval, HalfEye, Eye, CcdfInterval, CdfInterval,
                   GradientInterval, HistInterval, Slab, Interval, PointInterval,
@@ -1971,7 +1971,7 @@ end
 end # module
 ```
 
-**Note:** the `[extensions]` table triggers this module on `MCMCChains` alone, but it calls `RandomDraws.RandomDraw(::Chains)`. Both packages are in the test target, so both load. Document in the README that Chains support requires `using RandomDraws` too.
+**Note:** the `[extensions]` table triggers this module on `MCMCChains` alone, but it calls `RVars.RVar(::Chains)`. Both packages are in the test target, so both load. Document in the README that Chains support requires `using RVars` too.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -1982,7 +1982,7 @@ Expected: PASS — `MCMCChains extension` green.
 
 ```bash
 git add ext/DistributionPlotsMCMCChainsExt.jl test/test_extensions.jl
-git commit -m "feat: MCMCChains extension routed through RandomDraws"
+git commit -m "feat: MCMCChains extension routed through RVars"
 ```
 
 ---
@@ -2067,24 +2067,24 @@ Create `README.md`:
 
 Makie recipes that mimic R's [`ggdist`](https://mjskay.github.io/ggdist/) —
 slab, interval, pointinterval, lineribbon, and the dots family — for visualizing
-distributions and uncertainty. Plots [`RandomDraws.jl`](https://github.com/karimn/RandomDraws.jl)
-`RandomDraw` samples, `Distributions.jl` distributions, `MCMCChains.Chains`, and
+distributions and uncertainty. Plots [`RVars.jl`](https://github.com/karimn/RVars.jl)
+`RVar` samples, `Distributions.jl` distributions, `MCMCChains.Chains`, and
 raw sample vectors through one interface. **Built on Makie** (not Plots.jl).
 
 ## Install
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/karimn/RandomDraws.jl")
+Pkg.add(url="https://github.com/karimn/RVars.jl")
 Pkg.add(url="https://github.com/karimn/DistributionPlots.jl")
 ```
 
 ## Quick start
 
 ```julia
-using DistributionPlots, CairoMakie, RandomDraws
+using DistributionPlots, CairoMakie, RVars
 
-rv = RandomDraw(randn(1000, 3))     # 3 parameters, 1000 draws each
+rv = RVar(randn(1000, 3))     # 3 parameters, 1000 draws each
 halfeye(rv)                          # density slab + interval + point, per parameter
 pointinterval(rv)                    # just the point + nested intervals
 ```
@@ -2106,7 +2106,7 @@ point_interval(randn(2000); widths=[0.66, 0.95], point=:median, interval=:hdi)
 
 ## Notes
 
-- Chains support requires `using RandomDraws` alongside `using MCMCChains`.
+- Chains support requires `using RVars` alongside `using MCMCChains`.
 - Requires Julia 1.10+.
 ```
 
@@ -2136,8 +2136,8 @@ git commit -m "feat: AlgebraOfGraphics extension, README; v0.1.0 feature-complet
 | Dots/dotsinterval | 13 |
 | Lineribbon (separate engine) | 14 |
 | convert_arguments per public recipe type (not one <:SlabInterval) | 10, 12, 15, 16 |
-| RandomDraws extension (scalar→1, vector→1:k, variables) | 15 |
-| MCMCChains extension routed through RandomDraws | 16 |
+| RVars extension (scalar→1, vector→1:k, variables) | 15 |
+| MCMCChains extension routed through RVars | 16 |
 | AoG visual() extension | 17 |
 | Error tiers (reject/warn/silent) | 2 (empty reject, NaN warn), 4 (width reject), 12 (slab-summary reject) |
 | Julia 1.10 floor, exact UUIDs, compat | 1 |

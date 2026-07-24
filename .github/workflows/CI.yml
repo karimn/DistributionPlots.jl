@@ -1,0 +1,30 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['1.10', '1']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+      - uses: julia-actions/cache@v2
+      # RVars.jl is unregistered, so `Pkg.test()` cannot resolve it. Add RVars by
+      # its GitHub URL and develop the package under test into the test environment,
+      # then run the suite directly against that environment.
+      - name: Set up test environment (add unregistered RVars by URL)
+        run: |
+          julia --project=test -e '
+            using Pkg
+            Pkg.add(url="https://github.com/karimn/RVars.jl")
+            Pkg.develop(path=".")
+            Pkg.instantiate()'
+      - name: Run tests
+        run: julia --project=test test/runtests.jl

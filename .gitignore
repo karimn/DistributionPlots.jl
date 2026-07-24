@@ -8,3 +8,5 @@ Manifest.toml
 
 # Editor / session
 .remember/
+.claude/
+.superpowers/
