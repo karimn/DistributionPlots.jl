@@ -23,5 +23,10 @@ export point_interval
 export slab_curve
 export dot_layout
 export slabinterval, slabinterval!, SlabInterval
+export halfeye, halfeye!, eye, eye!, ccdfinterval, ccdfinterval!, cdfinterval, cdfinterval!,
+       gradientinterval, gradientinterval!, histinterval, histinterval!,
+       slab, slab!, interval, interval!, pointinterval, pointinterval!, spike, spike!,
+       HalfEye, Eye, CcdfInterval, CdfInterval, GradientInterval, HistInterval,
+       Slab, Interval, PointInterval, Spike
 
 end # module

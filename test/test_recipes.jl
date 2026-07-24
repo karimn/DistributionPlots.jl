@@ -62,3 +62,24 @@ end
     save(tmp, f)
     @test isfile(tmp)
 end
+
+@testset "children + pre-summarised" begin
+    CairoMakie.activate!()
+    for f in (halfeye, eye, ccdfinterval, cdfinterval, gradientinterval,
+              histinterval, slab, interval, pointinterval, spike)
+        @test (f(randn(1500)) isa Makie.FigureAxisPlot)
+    end
+
+    # halfeye defaults: slab on top, point shown
+    th = Makie.default_theme(nothing, HalfEye)
+    @test th[:side][] == :top
+
+    # override a child default
+    @test (halfeye(randn(1500); interval=:hdi) isa Makie.FigureAxisPlot)
+
+    # pre-summarised pointinterval: positions + point + lower/upper
+    @test (pointinterval([1.0,2.0], [0.0,1.0], [-1.0,0.0], [1.0,2.0]) isa Makie.FigureAxisPlot)
+
+    # slab from pre-summarised data is rejected loudly (not a bare MethodError)
+    @test_throws ArgumentError DistributionPlots._reject_slab_summary()
+end
