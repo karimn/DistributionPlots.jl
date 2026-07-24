@@ -14,8 +14,8 @@ include("slabs.jl")
 include("dotlayout.jl")
 include("geometry.jl")
 include("recipes/slabinterval.jl")
+include("recipes/dots.jl")
 # includes are added as later tasks create the files:
-# include("recipes/dots.jl")
 # include("recipes/lineribbon.jl")
 
 export asdist
@@ -28,5 +28,6 @@ export halfeye, halfeye!, eye, eye!, ccdfinterval, ccdfinterval!, cdfinterval, c
        slab, slab!, interval, interval!, pointinterval, pointinterval!, spike, spike!,
        HalfEye, Eye, CcdfInterval, CdfInterval, GradientInterval, HistInterval,
        Slab, Interval, PointInterval, Spike
+export dots, dots!, dotsinterval, dotsinterval!, Dots, DotsInterval
 
 end # module

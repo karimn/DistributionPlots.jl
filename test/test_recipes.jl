@@ -83,3 +83,9 @@ end
     # slab from pre-summarised data is rejected loudly (not a bare MethodError)
     @test_throws ArgumentError DistributionPlots._reject_slab_summary()
 end
+
+@testset "dots" begin
+    CairoMakie.activate!()
+    @test (dots(randn(1000)) isa Makie.FigureAxisPlot)
+    @test (dotsinterval(randn(1000)) isa Makie.FigureAxisPlot)
+end
