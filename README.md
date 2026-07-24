@@ -1,5 +1,7 @@
 # DistributionPlots.jl
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Makie recipes that mimic R's [`ggdist`](https://mjskay.github.io/ggdist/) —
 slab, interval, pointinterval, lineribbon, and the dots family — for visualizing
 distributions and uncertainty. Plots [`RVars.jl`](https://github.com/karimn/RVars.jl)
