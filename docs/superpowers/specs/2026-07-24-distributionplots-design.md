@@ -197,6 +197,15 @@ idiomatic:
    hook for accepting custom input types — not a bespoke pre-step. Core defines
    it for `Distribution` and `AbstractVector`; extensions add `RandomDraw` and
    `Chains`.
+   **Mechanism caveat:** Makie `@recipe` generates concrete `Plot{f}` types that
+   do *not* share a user-defined supertype (the same "recipe types can't inherit"
+   gap noted in the hierarchy section). So a `convert_arguments` method written
+   for `SlabInterval` does **not** automatically cover `HalfEye`, `Eye`, etc.
+   Each **public** recipe type therefore registers its own `convert_arguments`,
+   all delegating to one shared converter function (a small `@eval`/macro loop
+   over the public recipe types, mirroring how RandomDraws metaprograms its
+   elementwise ops). This is real boilerplate, generated once — not a single
+   method covering the family.
 2. **Stat computation is wrapped in `lift`/Observables** so the recipe is
    reactive (recomputes when inputs or attributes change). The pure stat
    functions are trivially `lift`-wrappable *because* they're pure.
@@ -226,7 +235,10 @@ The workhorse feeding `interval`, `pointinterval`, **and** `lineribbon`.
   - `hdi` — highest-density region from the KDE level set. **May return several
     disjoint intervals** for multimodal distributions.
 - **Returns a `Tables.jl`-compatible row set**: one row per (position × width ×
-  interval-piece), columns `value, .lower, .upper, .width, .point, .interval`.
+  interval-piece), columns `value, lower, upper, width, point, interval`
+  (plain names, not tidybayes's `.lower`/`.upper` — `.` is not a valid Julia
+  identifier character, so dotted names would force `getproperty(row,
+  Symbol(".lower"))` instead of `row.lower`).
   The set-of-intervals shape is baked in here so `hdi` disjoint intervals flow
   to both the interval bar and the ribbon band without per-recipe special
   casing. Callable standalone as a tidybayes-style summary.
@@ -255,8 +267,12 @@ The sorting rule is *whether the result would mislead*.
 | **Handle silently** | Valid, just degenerate | Draw the sensible thing |
 
 **Reject:** empty samples; `lower > upper` in pre-summarised input;
-`width ∉ (0,1)`; a slab requested from pre-summarised input (no density exists —
-enforced by dispatch, so it surfaces as a `MethodError`-class rejection).
+`width ∉ (0,1)`; a slab requested from pre-summarised input (no density exists).
+The slab-from-summary case is rejected by an **explicit method that throws
+`ArgumentError`** with a message naming the cause (e.g. "slab needs a density;
+pre-summarised point/interval data has none") — not left to surface as a bare
+`MethodError`, which would violate the "offending value in the message" rule
+above.
 
 **Degrade + warn:** `NaN`/`missing` in samples → drop and `@warn` the count
 (matches ggplot `na.rm`; silently dropping would alter the posterior); `hdi` on
@@ -294,7 +310,7 @@ multimodality was possible → just one interval.
 
 | Extension | Weakdep | Provides | If not loaded |
 |---|---|---|---|
-| `DistributionPlotsRandomDrawsExt` | `RandomDraws` | `convert_arguments(::Type{<:SlabInterval}, ::RandomDraw)`; scalar RV → 1 position, length-`k` vector RV → `k` positions; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
+| `DistributionPlotsRandomDrawsExt` | `RandomDraws` | `convert_arguments(P, ::RandomDraw)` for each public recipe type `P` (via the shared converter); scalar RV → 1 position, length-`k` vector RV → `k` positions at integer `1:k`; `variables(x)` → tick labels | core still works on `Vector`/`Distribution` |
 | `DistributionPlotsMCMCChainsExt` | `MCMCChains` | `convert_arguments(..., ::Chains)`, routed through RandomDraws' existing `Chains` conversion (not reimplemented) | `Chains` not plottable |
 | `DistributionPlotsAlgebraOfGraphicsExt` | `AlgebraOfGraphics` | `visual(HalfEye)` compatibility | recipes still work directly |
 
@@ -355,7 +371,7 @@ RNG difference.
 
 | Distribution | Catches |
 |---|---|
-| `Normal` | symmetric baseline — `qi == hdi`, sanity floor |
+| `Normal` (analytic) | symmetric baseline — `qi == hdi` *exactly* only for the analytic distribution; finite samples differ slightly, so this case uses `AnalyticDist` |
 | `Beta(2,8)` | bounded + asymmetric — boundary-reflection KDE; wrong bandwidth drifts `hdi` |
 | bimodal mixture | disjoint `hdi` — proves the set-of-intervals return type |
 | `StudentT` heavy tails | infinite-support `trim` behaviour |
@@ -367,9 +383,13 @@ versions).
 
 ## Compatibility
 
-- Julia `1.10+` (KernelDensity's floor; RandomDraws targets `1.9`, but this
-  package's KDE dep raises the floor).
-- Package extensions require Julia `1.9+` (satisfied).
+- Julia `1.10+` — a deliberate choice, not a forced one. Julia 1.10 is the
+  current LTS, so the floor excludes effectively no users, and it lets us use the
+  latest `KernelDensity` (whose newest release requires 1.10) rather than pinning
+  an older one. Targeting 1.9 was considered (to match RandomDraws) but rejected:
+  1.9 is superseded by the 1.10 LTS and buys negligible reach. RandomDraws' own
+  1.9 floor is independent and unaffected.
+- The package-extension mechanism (Julia `1.9+`) is comfortably satisfied.
 - Pinned reference tooling: ggdist `3.3.3`, posterior `1.6.1`.
 
 ## Open questions / deferred
