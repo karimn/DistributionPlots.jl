@@ -19,4 +19,5 @@ using Test
     include("test_geometry.jl")
     include("test_golden.jl")
     include("test_recipes.jl")
+    include("test_extensions.jl")
 end
