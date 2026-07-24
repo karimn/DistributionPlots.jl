@@ -33,3 +33,29 @@ using MCMCChains
     pos, dists = DistributionPlots._to_dist_args(chn)
     @test pos == [1.0, 2.0, 3.0]
 end
+
+using AlgebraOfGraphics
+const AoG = AlgebraOfGraphics
+
+@testset "AlgebraOfGraphics extension" begin
+    CairoMakie.activate!()
+    # visual() over our recipe type composes and draws without error.
+    #
+    # Scoped to a single mapped column rather than the two-column (x, y)
+    # form: our recipes' `convert_arguments` contract takes one positional
+    # argument (a distribution, a sample vector, or a vector of
+    # distributions/positions+dists for the pre-summarised child recipes),
+    # not a pair of same-length raw (x, y) sample columns the way a generic
+    # Makie `Scatter`-like recipe does. AlgebraOfGraphics (v0.13.1, per
+    # test/Manifest.toml) is happy to call `Interval(y_column)` under
+    # `mapping(:y)`, which round-trips through our single-arg
+    # `convert_arguments(x::AbstractVector{<:Real})` path exactly as
+    # `interval(randn(1500))` would outside of AoG.
+    spec = AoG.data((y = randn(1500),)) *
+           AoG.mapping(:y) *
+           AoG.visual(Interval)
+    fg = AoG.draw(spec)
+    # `FigureGrid` is defined by AlgebraOfGraphics itself (not re-exported
+    # through Makie), so it's asserted qualified as `AoG.FigureGrid` here.
+    @test fg isa AoG.FigureGrid
+end
