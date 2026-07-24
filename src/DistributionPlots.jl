@@ -11,8 +11,8 @@ include("interface.jl")
 include("density.jl")
 include("intervals.jl")
 include("slabs.jl")
+include("dotlayout.jl")
 # includes are added as later tasks create the files:
-# include("dotlayout.jl")
 # include("geometry.jl")
 # include("recipes/slabinterval.jl")
 # include("recipes/dots.jl")
@@ -21,5 +21,6 @@ include("slabs.jl")
 export asdist
 export point_interval
 export slab_curve
+export dot_layout
 
 end # module

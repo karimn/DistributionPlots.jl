@@ -15,4 +15,5 @@ using Test
     include("test_density.jl")
     include("test_intervals.jl")
     include("test_slabs.jl")
+    include("test_dotlayout.jl")
 end
