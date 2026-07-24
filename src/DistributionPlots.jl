@@ -9,8 +9,8 @@ using Makie
 
 include("interface.jl")
 include("density.jl")
+include("intervals.jl")
 # includes are added as later tasks create the files:
-# include("intervals.jl")
 # include("slabs.jl")
 # include("dotlayout.jl")
 # include("geometry.jl")
@@ -19,5 +19,6 @@ include("density.jl")
 # include("recipes/lineribbon.jl")
 
 export asdist
+export point_interval
 
 end # module
