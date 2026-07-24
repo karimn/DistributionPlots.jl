@@ -4,6 +4,7 @@ using DistributionPlots: Makie
 using .Makie
 using Distributions
 using Test
+using CairoMakie
 
 @testset "recipe scaffolding" begin
     # shared converter: a single distribution → one position, one dist
@@ -42,4 +43,22 @@ using Test
     posv, distsv = ca3[1]
     @test posv == [1.0, 2.0]
     @test length(distsv) == 2
+end
+
+@testset "slabinterval renders" begin
+    CairoMakie.activate!()
+    f = slabinterval(randn(2000))
+    @test f isa Makie.FigureAxisPlot
+    ax = f.axis
+    # at least one poly (slab) and some line/scatter children exist
+    @test !isempty(ax.scene.plots)
+
+    # toggles: show only the interval
+    f2 = slabinterval(randn(2000); show_slab=false, show_point=false)
+    @test f2 isa Makie.FigureAxisPlot
+
+    # saving to a headless PNG does not error
+    tmp = tempname() * ".png"
+    save(tmp, f)
+    @test isfile(tmp)
 end

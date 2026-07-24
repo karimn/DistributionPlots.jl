@@ -40,3 +40,36 @@ Makie.convert_arguments(::Type{<:SlabInterval}, x::AbstractVector{<:Real}) =
     (_to_dist_args(x),)
 Makie.convert_arguments(::Type{<:SlabInterval}, xs::AbstractVector{<:Distributions.UnivariateDistribution}) =
     (_to_dist_args(xs),)
+
+function Makie.plot!(p::SlabInterval)
+    # p.data already resolves to the (positions, dists) tuple produced by
+    # convert_arguments (Makie unwraps the recipe's single positional arg).
+    args = p.data
+
+    lift(args, p.slab_type, p.interval, p.point, p.widths, p.side, p.justification,
+         p.scale, p.normalize, p.trim, p.n, p.show_slab, p.show_interval, p.show_point,
+         p.color, p.interval_linewidth, p.point_size) do (positions, dists), st, iv, pt,
+            ws, side, just, sc, nrm, tr, n, sslab, sint, spoint, col, ilw, psz
+
+        for (pos, d) in zip(positions, dists)
+            if sslab
+                xs, th = slab_curve(d; kind=st, n=n, trim=tr)
+                poly!(p, slab_polygon(xs, th; position=pos, orientation=:vertical,
+                                      side=side, justification=just, scale=sc, normalize=nrm);
+                      color=col)
+            end
+            rows = point_interval(d; widths=ws, point=pt, interval=iv)
+            if sint
+                for r in rows
+                    a, b = interval_segment(r.lower, r.upper; position=pos, orientation=:vertical)
+                    linesegments!(p, [a, b]; linewidth=ilw, color=col)
+                end
+            end
+            if spoint && !isempty(rows)
+                scatter!(p, [point_marker(rows[1].value; position=pos, orientation=:vertical)];
+                         markersize=psz, color=col)
+            end
+        end
+    end
+    return p
+end
