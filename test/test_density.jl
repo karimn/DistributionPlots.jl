@@ -1,5 +1,5 @@
 using DistributionPlots
-using DistributionPlots: asdist, density_at, kde_reflected, support
+using DistributionPlots: asdist, density_at, kde_reflected, support, slab_curve
 using Distributions
 using Test
 
@@ -24,4 +24,14 @@ using Test
     s = asdist(samples)
     d_lo = density_at(s, [0.05]; bounds=(0.0, 1.0))[1]
     @test d_lo > 0
+
+    # Unbounded samples (the default): the slab window extends PAST the data
+    # extremes so the KDE tapers naturally — it is NOT reflected/cut at min/max.
+    usamp = quantile.(Normal(0, 1), range(0.0005, 0.9995; length=4000))
+    uxs, uth = slab_curve(usamp; kind=:pdf, n=201)
+    @test minimum(uxs) < minimum(usamp) - 1e-9      # window padded below the data
+    @test maximum(uxs) > maximum(usamp) + 1e-9      # window padded above the data
+    @test uth[1]   < 0.05 * maximum(uth)            # far-tail density tapers to ~0
+    @test uth[end] < 0.05 * maximum(uth)
+    @test uth[argmin(abs.(uxs))] ≈ pdf(Normal(0,1), 0.0) atol=0.03   # peak ≈ N(0,1) pdf
 end

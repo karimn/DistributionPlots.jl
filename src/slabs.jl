@@ -1,5 +1,18 @@
 using StatsBase: fit, Histogram
 
+# Evaluation window for the slab curve. Analytic: trimmed support. Samples: the data
+# range PADDED past the extremes (so an unbounded KDE tapers to ~0 instead of being cut
+# at min/max), clamped to any known-finite bound.
+_slab_window(d::AnalyticDist; trim::Real) = support(d; trim=trim)
+function _slab_window(d::SampleDist; trim::Real)
+    mn, mx = extrema(d.samples)
+    lo_b, hi_b = d.bounds
+    pad = 3 * _kde_bandwidth(d.samples)
+    lo = isfinite(lo_b) ? float(lo_b) : mn - pad
+    hi = isfinite(hi_b) ? float(hi_b) : mx + pad
+    return (lo, hi)
+end
+
 """
     slab_curve(d; kind=:pdf, n=201, trim=0.001)
 
@@ -11,13 +24,13 @@ Return `(xs, thickness)` describing the slab shape. `kind`:
 """
 function slab_curve(d; kind::Symbol=:pdf, n::Int=201, trim::Real=0.001)
     dist = asdist(d)
-    lo, hi = support(dist; trim=trim)
+    lo, hi = _slab_window(dist; trim=trim)
     if kind === :histogram
         return _histogram_curve(dist)
     end
     xs = collect(range(lo, hi; length=n))
     if kind === :pdf
-        return xs, density_at(dist, xs; bounds=(lo, hi))
+        return xs, density_at(dist, xs)
     elseif kind === :cdf
         return xs, [cdf_at(dist, x) for x in xs]
     elseif kind === :ccdf

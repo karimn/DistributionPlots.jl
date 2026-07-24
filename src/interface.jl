@@ -2,7 +2,12 @@ abstract type AbstractDist end
 
 struct SampleDist <: AbstractDist
     samples::Vector{Float64}
+    bounds::Tuple{Float64,Float64}   # KNOWN finite support bounds for KDE reflection; (-Inf,Inf) = unbounded
 end
+
+# Raw sample vectors are unbounded by default: the KDE must NOT reflect at the
+# empirical min/max (that truncates and distorts the slab for unbounded data).
+SampleDist(samples::AbstractVector{<:Real}) = SampleDist(collect(Float64, samples), (-Inf, Inf))
 
 struct AnalyticDist{D<:Distributions.UnivariateDistribution} <: AbstractDist
     dist::D

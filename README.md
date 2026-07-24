@@ -52,7 +52,7 @@ vector of distributions), so map a single data column (e.g.
 `mapping(:y) * visual(Interval)`) rather than AoG's typical two-column
 `mapping(:x, :y)` pointlike form.
 
-Tested against AlgebraOfGraphics v0.13.1 (see `test/Manifest.toml`); its
+Tested against AlgebraOfGraphics v0.13.1; its
 `aesthetic_mapping` API is not yet fully stable across releases, so pin or
 check compatibility if you hit `MethodError`/`aesthetic_mapping` errors on a
 different version.

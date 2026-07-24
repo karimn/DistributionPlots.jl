@@ -3,7 +3,6 @@ using Makie
 @recipe(Dots, data) do scene
     Attributes(
         ndots = 50,
-        orientation = :vertical,
         color = :black,
         scale = 0.9,
         markersize = 6,
@@ -34,7 +33,6 @@ Makie.convert_arguments(::Type{<:Dots}, xs::AbstractVector{<:Distributions.Univa
 @recipe(DotsInterval, data) do scene
     Attributes(
         ndots = 50,
-        orientation = :vertical,
         show_interval = true,
         show_point = true,
         widths = [0.66, 0.95],
