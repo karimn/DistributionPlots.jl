@@ -7,6 +7,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         version: ['1.10', '1']
     steps:
@@ -15,5 +16,17 @@ jobs:
         with:
           version: ${{ matrix.version }}
       - uses: julia-actions/cache@v2
-      - uses: julia-actions/julia-buildpkg@v1
-      - uses: julia-actions/julia-runtest@v1
+      # RVars.jl is unregistered, so `Pkg.test()` cannot resolve it. Instead we
+      # develop RVars (by URL) and the package under test (by path) into the test
+      # environment, then run the suite directly against that environment.
+      - name: Set up test environment (develop unregistered RVars)
+        run: |
+          julia --project=test -e '
+            using Pkg
+            Pkg.develop([
+                PackageSpec(path="."),
+                PackageSpec(url="https://github.com/karimn/RVars.jl"),
+            ])
+            Pkg.instantiate()'
+      - name: Run tests
+        run: julia --project=test test/runtests.jl

@@ -57,6 +57,18 @@ Tested against AlgebraOfGraphics v0.13.1; its
 check compatibility if you hit `MethodError`/`aesthetic_mapping` errors on a
 different version.
 
+## Development
+
+`RVars.jl` is unregistered, so the test environment develops it (and this package)
+explicitly rather than using `Pkg.test()`. To run the suite locally:
+
+```bash
+julia --project=test -e 'using Pkg; Pkg.develop([PackageSpec(path="."), PackageSpec(url="https://github.com/karimn/RVars.jl")]); Pkg.instantiate()'
+julia --project=test test/runtests.jl
+```
+
+(CI runs these same two steps — see `.github/workflows/CI.yml`.)
+
 ## Notes
 
 - Chains support requires `using RVars` alongside `using MCMCChains`.
