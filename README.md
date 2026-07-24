@@ -1,5 +1,6 @@
 # DistributionPlots.jl
 
+[![CI](https://github.com/karimn/DistributionPlots.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/karimn/DistributionPlots.jl/actions/workflows/CI.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Makie recipes that mimic R's [`ggdist`](https://mjskay.github.io/ggdist/) —
