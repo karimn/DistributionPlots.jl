@@ -89,3 +89,11 @@ end
     @test (dots(randn(1000)) isa Makie.FigureAxisPlot)
     @test (dotsinterval(randn(1000)) isa Makie.FigureAxisPlot)
 end
+
+@testset "lineribbon" begin
+    CairoMakie.activate!()
+    xgrid = collect(0.0:0.5:10.0)
+    # a growing-uncertainty fan: samples per x
+    perx = [randn(800) .* (0.2 + 0.1x) .+ sin(x) for x in xgrid]
+    @test (lineribbon(xgrid, perx) isa Makie.FigureAxisPlot)
+end
