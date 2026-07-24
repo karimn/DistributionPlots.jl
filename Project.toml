@@ -18,7 +18,7 @@ RVars = "108f709a-74fe-47a0-bf6a-d6e5c41d346f"
 
 [extensions]
 DistributionPlotsAlgebraOfGraphicsExt = "AlgebraOfGraphics"
-DistributionPlotsMCMCChainsExt = "MCMCChains"
+DistributionPlotsMCMCChainsExt = ["MCMCChains", "RVars"]
 DistributionPlotsRVarsExt = "RVars"
 
 [compat]

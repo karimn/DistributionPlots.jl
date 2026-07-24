@@ -23,3 +23,13 @@ using Test
     @test (halfeye(rv1) isa Makie.FigureAxisPlot)
     @test (pointinterval(rv1) isa Makie.FigureAxisPlot)
 end
+
+using MCMCChains
+
+@testset "MCMCChains extension" begin
+    CairoMakie.activate!()
+    chn = Chains(randn(500, 3, 2), [:a, :b, :c])       # 500 iters, 3 params, 2 chains
+    @test (halfeye(chn) isa Makie.FigureAxisPlot)      # 3 positions, chains pooled
+    pos, dists = DistributionPlots._to_dist_args(chn)
+    @test pos == [1.0, 2.0, 3.0]
+end
