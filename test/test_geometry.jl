@@ -11,6 +11,14 @@ using Test
     @test normalize_thickness([0.0, 1.0, 2.0], :all) == [0.0, 0.5, 1.0]
     @test normalize_thickness([0.0, 1.0, 2.0], :none) == [0.0, 1.0, 2.0]
 
+    # :each normalizes to this vector's own max (the pre-fix :all behavior)
+    @test normalize_thickness([0.0, 1.0, 2.0], :each) == [0.0, 0.5, 1.0]
+    # :all with a supplied global divisor preserves RELATIVE height (peak need not be 1)
+    @test normalize_thickness([0.0, 1.0, 2.0], :all; globalmax=4.0) == [0.0, 0.25, 0.5]
+    # standalone :all still falls back to own max (backward compatible)
+    @test normalize_thickness([0.0, 1.0, 2.0], :all) == [0.0, 0.5, 1.0]
+    @test_throws ArgumentError normalize_thickness([1.0, 2.0], :bogus)
+
     xs = [0.0, 1.0, 2.0]
     th = [0.0, 1.0, 0.0]                        # normalised triangle
     # vertical, side=:top, position=5, scale=1 → polygon x ∈ [5, 6], y follows xs

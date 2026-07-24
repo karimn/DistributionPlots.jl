@@ -18,7 +18,7 @@ end
         side = :top,               # :top, :bottom, :both
         justification = 0.0,
         scale = 0.9,
-        normalize = :all,          # :all, :none
+        normalize = :all,          # :all (one global max across slabs), :each (per-slab), :none
         show_slab = true,
         show_interval = true,
         show_point = true,
@@ -56,12 +56,23 @@ function Makie.plot!(p::SlabInterval)
          p.color, p.slab_color, p.slab_alpha, p.interval_linewidth, p.point_size) do (positions, dists), st, iv, pt,
             ws, side, just, sc, nrm, tr, n, sslab, sint, spoint, col, scol, salpha, ilw, psz
 
-        for (pos, d) in zip(positions, dists)
+        # Precompute slab curves so `normalize=:all` can divide every slab by ONE
+        # global maximum thickness (ggdist's "all"), preserving relative peak heights
+        # across slabs. `:each` normalizes each slab to its own max; `:none` leaves raw.
+        curves = sslab ? [slab_curve(d; kind=st, n=n, trim=tr) for d in dists] : nothing
+        gmax = 0.0
+        if sslab
+            for (_, th) in curves
+                isempty(th) || (gmax = max(gmax, maximum(th)))
+            end
+        end
+        for (i, (pos, d)) in enumerate(zip(positions, dists))
             # slab drawn first so the point/interval below render on top of it
             if sslab
-                xs, th = slab_curve(d; kind=st, n=n, trim=tr)
+                xs, th = curves[i]
                 poly!(p, slab_polygon(xs, th; position=pos, orientation=:vertical,
-                                      side=side, justification=just, scale=sc, normalize=nrm);
+                                      side=side, justification=just, scale=sc,
+                                      normalize=nrm, globalmax=gmax);
                       color=(scol, salpha))
             end
             rows = point_interval(d; widths=ws, point=pt, interval=iv)

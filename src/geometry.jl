@@ -1,13 +1,20 @@
 using Makie: Point2f
 
-function normalize_thickness(thickness::AbstractVector{<:Real}, mode::Symbol)
+function normalize_thickness(thickness::AbstractVector{<:Real}, mode::Symbol;
+                             globalmax::Union{Nothing,Real}=nothing)
     if mode === :none
         return collect(Float64, thickness)
+    elseif mode === :each
+        m = isempty(thickness) ? 0.0 : maximum(thickness)
+        return m > 0 ? collect(Float64, thickness ./ m) : collect(Float64, thickness)
     elseif mode === :all
-        m = maximum(thickness)
+        # Divide by ONE global maximum when the recipe supplies it (across ALL slabs,
+        # preserving relative peak heights — ggdist's "all"). When called standalone
+        # with no global max, fall back to this vector's own max.
+        m = globalmax === nothing ? (isempty(thickness) ? 0.0 : maximum(thickness)) : float(globalmax)
         return m > 0 ? collect(Float64, thickness ./ m) : collect(Float64, thickness)
     else
-        throw(ArgumentError("normalize_thickness: unknown mode :$mode (expected :all or :none)"))
+        throw(ArgumentError("normalize_thickness: unknown mode :$mode (expected :all, :each, or :none)"))
     end
 end
 
@@ -19,8 +26,8 @@ _pt(along, perp, ::Val{:horizontal}) = Point2f(along, perp)
 function slab_polygon(xs::AbstractVector{<:Real}, thickness::AbstractVector{<:Real};
                       position::Real, orientation::Symbol=:vertical,
                       side::Symbol=:top, justification::Real=0.0,
-                      scale::Real=1.0, normalize::Symbol=:all)
-    th = normalize_thickness(thickness, normalize) .* scale
+                      scale::Real=1.0, normalize::Symbol=:all, globalmax=nothing)
+    th = normalize_thickness(thickness, normalize; globalmax=globalmax) .* scale
     o = Val(orientation)
     base = position + justification
     top = [_pt(xs[i], base + _sideoffset(th[i], side, :hi), o) for i in eachindex(xs)]
