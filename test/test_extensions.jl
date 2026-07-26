@@ -144,6 +144,13 @@ end
 
     @test_throws DimensionMismatch DistributionPlots._to_dist_args(x, y[1:10])
 
+    # swapped-argument footgun (issue #4): every position ends up with exactly
+    # one draw when the arguments are the wrong way round — e.g. AoG's
+    # `mapping(value, category)` instead of `mapping(category, value)` — which
+    # can't form a distribution, so this must fail loudly instead of silently
+    # drawing a raw scatter.
+    @test_throws ArgumentError DistributionPlots._to_dist_args(collect(1.0:10.0), randn(10))
+
     for f in (halfeye, pointinterval, interval, dots, dotsinterval, slab)
         @test f(x, y) isa Makie.FigureAxisPlot
     end
