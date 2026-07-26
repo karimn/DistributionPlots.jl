@@ -6,6 +6,10 @@ using Makie
         color = :black,
         scale = 0.9,
         markersize = 6,
+        dodge = Makie.automatic,
+        n_dodge = Makie.automatic,
+        dodge_gap = 0.03,
+        width = 1.0,
     )
 end
 
@@ -15,8 +19,13 @@ end
 function Makie.plot!(p::Dots)
     args = p.data
 
-    lift(args, p.ndots, p.scale, p.color, p.markersize) do (positions, dists), nd, sc, col, msz
-        for (pos, d) in zip(positions, dists)
+    lift(args, p.ndots, p.scale, p.color, p.markersize,
+         p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists), nd, sc, col, msz,
+            dg, ndg, dgap, wdt
+        shift, shrink = dodge_placement(_or_nothing(dg), _or_nothing(ndg), dgap, wdt)
+        sc = sc * shrink
+        for (pos0, d) in zip(positions, dists)
+            pos = pos0 + shift
             lay = dot_layout(d; ndots=nd)
             pts = [Point2f(pos + (y - 1) * lay.binwidth * sc, x) for (x, y) in zip(lay.x, lay.y)]
             scatter!(p, pts; markersize=msz, color=col)
@@ -29,6 +38,8 @@ Makie.convert_arguments(::Type{<:Dots}, x::Distributions.UnivariateDistribution)
 Makie.convert_arguments(::Type{<:Dots}, x::AbstractVector{<:Real}) = (_to_dist_args(x),)
 Makie.convert_arguments(::Type{<:Dots}, xs::AbstractVector{<:Distributions.UnivariateDistribution}) =
     (_to_dist_args(xs),)
+Makie.convert_arguments(::Type{<:Dots}, x::AbstractVector{<:Real}, y::AbstractVector{<:Real}) =
+    (_to_dist_args(x, y),)
 
 @recipe(DotsInterval, data) do scene
     Attributes(
@@ -43,6 +54,10 @@ Makie.convert_arguments(::Type{<:Dots}, xs::AbstractVector{<:Distributions.Univa
         markersize = 6,
         interval_linewidth = 6,
         point_size = 10,
+        dodge = Makie.automatic,
+        n_dodge = Makie.automatic,
+        dodge_gap = 0.03,
+        width = 1.0,
     )
 end
 
@@ -50,10 +65,14 @@ function Makie.plot!(p::DotsInterval)
     args = p.data
 
     lift(args, p.ndots, p.widths, p.point, p.interval, p.show_interval, p.show_point,
-         p.scale, p.color, p.markersize, p.interval_linewidth, p.point_size) do (positions, dists),
-            nd, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz
+         p.scale, p.color, p.markersize, p.interval_linewidth, p.point_size,
+         p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists),
+            nd, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz, dg, ndg, dgap, wdt
 
-        for (pos, d) in zip(positions, dists)
+        shift, shrink = dodge_placement(_or_nothing(dg), _or_nothing(ndg), dgap, wdt)
+        sc = sc * shrink
+        for (pos0, d) in zip(positions, dists)
+            pos = pos0 + shift
             lay = dot_layout(d; ndots=nd)
             pts = [Point2f(pos + (y - 1) * lay.binwidth * sc, x) for (x, y) in zip(lay.x, lay.y)]
             scatter!(p, pts; markersize=msz, color=col)
@@ -78,3 +97,5 @@ Makie.convert_arguments(::Type{<:DotsInterval}, x::Distributions.UnivariateDistr
 Makie.convert_arguments(::Type{<:DotsInterval}, x::AbstractVector{<:Real}) = (_to_dist_args(x),)
 Makie.convert_arguments(::Type{<:DotsInterval}, xs::AbstractVector{<:Distributions.UnivariateDistribution}) =
     (_to_dist_args(xs),)
+Makie.convert_arguments(::Type{<:DotsInterval}, x::AbstractVector{<:Real}, y::AbstractVector{<:Real}) =
+    (_to_dist_args(x, y),)
