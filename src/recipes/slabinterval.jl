@@ -23,6 +23,18 @@ function _to_dist_args(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
     for (xi, yi) in zip(x, y)
         push!(groups[slot[xi]], yi)
     end
+    # Each position is meant to collect many draws into one distribution. If every
+    # group has exactly one member, the two arguments are almost certainly swapped
+    # (e.g. AoG's `mapping(value, category)` instead of `mapping(category, value)`):
+    # this doesn't error on its own, it just silently draws a raw scatter of
+    # single-sample "distributions" instead of the intended point+interval/slab.
+    if length(groups) > 1 && all(g -> length(g) == 1, groups)
+        throw(ArgumentError(
+            "each position has exactly one observation, so no distribution can be " *
+            "formed. This usually means the arguments are in the wrong order — " *
+            "expected (category, value), e.g. mapping(category, value) rather than " *
+            "mapping(value, category)."))
+    end
     return (collect(Float64, positions), AbstractDist[asdist(g) for g in groups])
 end
 
@@ -35,6 +47,7 @@ _or_nothing(x) = x === Makie.automatic ? nothing : x
         interval = :qi,            # :qi, :hdci, :hdi
         point = :median,           # :mean, :median, :mode
         widths = [0.66, 0.95],
+        orientation = :vertical,   # :vertical (value on y) or :horizontal (value on x)
         side = :top,               # :top, :bottom, :both
         justification = 0.0,
         scale = 0.9,
@@ -80,11 +93,11 @@ function Makie.plot!(p::SlabInterval)
     # convert_arguments (Makie unwraps the recipe's single positional arg).
     args = p.data
 
-    lift(args, p.slab_type, p.interval, p.point, p.widths, p.side, p.justification,
-         p.scale, p.normalize, p.trim, p.n, p.show_slab, p.show_interval, p.show_point,
-         p.color, p.slab_color, p.slab_alpha, p.interval_linewidth, p.point_size,
+    lift(args, p.slab_type, p.interval, p.point, p.widths, p.orientation, p.side,
+         p.justification, p.scale, p.normalize, p.trim, p.n, p.show_slab, p.show_interval,
+         p.show_point, p.color, p.slab_color, p.slab_alpha, p.interval_linewidth, p.point_size,
          p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists), st, iv, pt,
-            ws, side, just, sc, nrm, tr, n, sslab, sint, spoint, col, scol, salpha, ilw, psz,
+            ws, ori, side, just, sc, nrm, tr, n, sslab, sint, spoint, col, scol, salpha, ilw, psz,
             dg, ndg, dgap, wdt
 
         # One placement for the whole plot: AoG calls the recipe once per dodge group.
@@ -109,7 +122,7 @@ function Makie.plot!(p::SlabInterval)
             # slab drawn first so the point/interval below render on top of it
             if sslab
                 xs, th = curves[i]
-                poly!(p, slab_polygon(xs, th; position=pos, orientation=:vertical,
+                poly!(p, slab_polygon(xs, th; position=pos, orientation=ori,
                                       side=side, justification=just, scale=sc,
                                       normalize=nrm, globalmax=gmax);
                       color=(scol, salpha))
@@ -117,12 +130,12 @@ function Makie.plot!(p::SlabInterval)
             rows = point_interval(d; widths=ws, point=pt, interval=iv)
             if sint
                 for r in rows
-                    a, b = interval_segment(r.lower, r.upper; position=pos, orientation=:vertical)
+                    a, b = interval_segment(r.lower, r.upper; position=pos, orientation=ori)
                     linesegments!(p, [a, b]; linewidth=ilw, color=col)
                 end
             end
             if spoint && !isempty(rows)
-                scatter!(p, [point_marker(rows[1].value; position=pos, orientation=:vertical)];
+                scatter!(p, [point_marker(rows[1].value; position=pos, orientation=ori)];
                          markersize=psz, color=col)
             end
         end
@@ -156,7 +169,8 @@ for (T, defs) in _CHILD_DEFAULTS
         function Makie.plot!(p::$T)
             slabinterval!(p, p.data;
                 slab_type=p.slab_type, interval=p.interval, point=p.point, widths=p.widths,
-                side=p.side, justification=p.justification, scale=p.scale, normalize=p.normalize,
+                orientation=p.orientation, side=p.side, justification=p.justification,
+                scale=p.scale, normalize=p.normalize,
                 show_slab=p.show_slab, show_interval=p.show_interval, show_point=p.show_point,
                 trim=p.trim, n=p.n, color=p.color, slab_color=p.slab_color, slab_alpha=p.slab_alpha,
                 colormap=p.colormap, colorrange=p.colorrange,
@@ -175,13 +189,14 @@ end
 
 # Pre-summarised (ggdist geom_ path): draw supplied point/lower/upper directly.
 function pointinterval(positions::AbstractVector{<:Real}, values::AbstractVector{<:Real},
-                       lowers::AbstractVector{<:Real}, uppers::AbstractVector{<:Real}; kwargs...)
+                       lowers::AbstractVector{<:Real}, uppers::AbstractVector{<:Real};
+                       orientation::Symbol=:vertical, kwargs...)
     fig = Figure()
     ax = Axis(fig[1,1])
     for i in eachindex(positions)
-        a, b = interval_segment(lowers[i], uppers[i]; position=positions[i], orientation=:vertical)
+        a, b = interval_segment(lowers[i], uppers[i]; position=positions[i], orientation=orientation)
         linesegments!(ax, [a, b]; linewidth=6, color=:black)
-        scatter!(ax, [point_marker(values[i]; position=positions[i], orientation=:vertical)];
+        scatter!(ax, [point_marker(values[i]; position=positions[i], orientation=orientation)];
                  markersize=10, color=:black)
     end
     return Makie.FigureAxisPlot(fig, ax, ax.scene.plots[end])

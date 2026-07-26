@@ -41,4 +41,10 @@ using Test
     p1h, p2h = interval_segment(-1.0, 2.0; position=5.0, orientation=:horizontal)
     @test p1h == Point2f(-1.0, 5.0)
     @test p2h == Point2f(2.0, 5.0)
+
+    # an unrecognised orientation throws naming the valid options rather than
+    # silently falling through to :vertical
+    @test_throws ArgumentError interval_segment(-1.0, 2.0; position=5.0, orientation=:diagonal)
+    @test_throws ArgumentError point_marker(0.5; position=5.0, orientation=:diagonal)
+    @test_throws ArgumentError slab_polygon(xs, th; position=5.0, orientation=:diagonal)
 end
