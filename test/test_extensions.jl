@@ -266,3 +266,40 @@ end
         end
     end
 end
+
+@testset "AlgebraOfGraphics: orientation swaps the aesthetic mapping (issues #4/#8)" begin
+    CairoMakie.activate!()
+    # reproduction from issue #8: two categories, values on well-separated means so a
+    # mixed-up axis is obvious from the tick range, not just the label text.
+    tbl = (cat = repeat(["alpha", "beta"], inner = 400),
+           value = vcat(randn(400) .+ 2, randn(400) .+ 8))
+    ax1(fg) = fg.figure.content[1]
+
+    for T in (SlabInterval, HalfEye, PointInterval, Interval, Dots, DotsInterval)
+        # vertical is the default — no orientation passed at all, so this also
+        # exercises `mandatory_attributes` supplying :vertical for the lookup.
+        fgv = AoG.draw(AoG.data(tbl) * AoG.mapping(:cat, :value) * AoG.visual(T))
+        axv = ax1(fgv)
+        @test axv.xlabel[] == "cat"
+        @test axv.ylabel[] == "value"
+        @test axv.xticks[] == (Base.OneTo(2), ["alpha", "beta"])
+
+        # under :horizontal the geometry swaps (per #4/#6), and now so does the
+        # mapping: category moves to y, value to x — not left behind on the old axes.
+        fgh = AoG.draw(AoG.data(tbl) * AoG.mapping(:cat, :value) *
+                      AoG.visual(T; orientation = :horizontal))
+        axh = ax1(fgh)
+        @test axh.xlabel[] == "value"
+        @test axh.ylabel[] == "cat"
+        @test axh.yticks[] == (Base.OneTo(2), ["alpha", "beta"])
+    end
+
+    # dodge direction follows orientation too: :dodge maps to AesDodgeX when vertical
+    # (matching #4/#6's default) and AesDodgeY under :horizontal.
+    dtbl = (cat = repeat(["alpha", "beta"], inner = 400),
+            grp = repeat(["a", "b"], outer = 400),
+            value = randn(800))
+    fgd = AoG.draw(AoG.data(dtbl) * AoG.mapping(:cat, :value; dodge = :grp) *
+                   AoG.visual(HalfEye; orientation = :horizontal, n_dodge = 2))
+    @test fgd isa AoG.FigureGrid
+end
