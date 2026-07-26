@@ -148,13 +148,17 @@ Tested against AlgebraOfGraphics v0.13.1; its `aesthetic_mapping` API is not yet
 fully stable across releases, so pin or check compatibility if you hit
 `MethodError`/`aesthetic_mapping` errors on a different version.
 
-**Limitation:** `orientation = :horizontal` is not usable through this
-extension. `aesthetic_mapping` is dispatched on the recipe *type* alone —
-AoG resolves which argument is `AesX` and which is `AesY` before any
-`visual(HalfEye; orientation = :horizontal)` attribute is available to look
-at, so the mapping can't be swapped per call. Outside AoG (calling
-`halfeye`/`dots`/etc. directly on a `Figure`/`Axis`), `orientation` works as
-documented above.
+`orientation = :horizontal` works through this extension too: `aesthetic_mapping`
+declares `AesX`/`AesY` (and `AesDodgeX`/`AesDodgeY`) as attribute-dependent on
+`orientation` — the same mechanism Makie's own `Violin`/`BoxPlot` use — so AoG
+resolves the swap per call rather than fixing it at the recipe type:
+
+```julia
+data(tbl) * mapping(:arm, :value) *
+  visual(HalfEye; orientation = :horizontal) |> draw
+```
+
+labelling, ticks and dodge direction all follow the swapped geometry.
 
 ## Development
 

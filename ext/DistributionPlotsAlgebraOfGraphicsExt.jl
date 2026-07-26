@@ -17,9 +17,24 @@ using Makie
 #
 # (AlgebraOfGraphics v0.13.1's `aesthetic_mapping` splats one `ScientificType` per
 # positional plot argument, so the fallback must accept a variable number of them.)
-import AlgebraOfGraphics: aesthetic_mapping, legend_elements
-using AlgebraOfGraphics: AesX, AesY, AesColor, AesDodgeX, ScientificType, dictionary,
-                         MixedArguments, PolyElement, LineElement, MarkerElement
+#
+# Issues #4/#8: our recipes swap which argument is drawn on which axis when
+# `orientation = :horizontal`, but a static `1 => AesX, 2 => AesY` mapping doesn't
+# follow — every label, tick and dodge direction stays as if it were still vertical.
+# AoG's fix for exactly this (see Makie's own Violin/BoxPlot) is an attribute-dependent
+# mapping: instead of an `Aes` value, map to `attrkey => dictionary(value => Aes...)`,
+# and AoG resolves it against the plot's actual attribute value at draw time. That
+# resolution looks the attribute up in the attributes AoG has for this plot — which
+# only holds what was explicitly passed to `visual(...; kwargs...)`, not the recipe's
+# own attribute defaults — so `mandatory_attributes` is needed to supply :vertical
+# when the caller didn't set `orientation` at all.
+import AlgebraOfGraphics: aesthetic_mapping, legend_elements, mandatory_attributes
+using AlgebraOfGraphics: AesX, AesY, AesColor, AesDodgeX, AesDodgeY, ScientificType,
+                         dictionary, MixedArguments, PolyElement, LineElement, MarkerElement
+
+const _ORIENT_XY = :orientation => dictionary([:vertical => AesX, :horizontal => AesY])
+const _ORIENT_YX = :orientation => dictionary([:vertical => AesY, :horizontal => AesX])
+const _ORIENT_DODGE = :orientation => dictionary([:vertical => AesDodgeX, :horizontal => AesDodgeY])
 
 # The slabinterval family inherits SlabInterval's attributes, so all of them have a
 # `slab_color` distinct from `color`. Dots and DotsInterval draw no slab and have only
@@ -34,8 +49,8 @@ const _DOTS_FAMILY = (DistributionPlots.Dots, DistributionPlots.DotsInterval)
 
 for T in _SLAB_FAMILY
     @eval aesthetic_mapping(::Type{<:$T}, ::ScientificType...) = dictionary([
-        1 => AesX,
-        2 => AesY,
+        1 => _ORIENT_XY,
+        2 => _ORIENT_YX,
         # `color` drives the point and interval, `slab_color` the density itself —
         # ggdist's colour/fill split, so mapping(color = :arm) tints the intervals and
         # mapping(slab_color = :arm) tints the slabs, independently.
@@ -43,14 +58,16 @@ for T in _SLAB_FAMILY
         :slab_color => AesColor,
         # Native dodge: AoG hands the recipe a scalar `dodge` group index and leaves
         # `n_dodge` unset, so pass n_dodge yourself — visual(HalfEye; n_dodge = 2).
-        :dodge => AesDodgeX,
+        :dodge => _ORIENT_DODGE,
     ])
+    @eval mandatory_attributes(::Type{<:$T}) = dictionary([:orientation => :vertical])
 end
 
 for T in _DOTS_FAMILY
     @eval aesthetic_mapping(::Type{<:$T}, ::ScientificType...) = dictionary([
-        1 => AesX, 2 => AesY, :color => AesColor, :dodge => AesDodgeX,
+        1 => _ORIENT_XY, 2 => _ORIENT_YX, :color => AesColor, :dodge => _ORIENT_DODGE,
     ])
+    @eval mandatory_attributes(::Type{<:$T}) = dictionary([:orientation => :vertical])
 end
 
 _legend_color(scale_args) = get(scale_args, :color, :black)
