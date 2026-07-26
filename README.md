@@ -27,6 +27,13 @@ halfeye(rv)                          # density slab + interval + point, per para
 pointinterval(rv)                    # just the point + nested intervals
 ```
 
+You can also pass raw draws plus the position to group them by — ggdist's
+`stat_halfeye(aes(x = arm, y = value))`, one distribution per distinct `x`:
+
+```julia
+halfeye(x, values)
+```
+
 Sample vectors and analytic distributions work too:
 
 ```julia
@@ -42,23 +49,76 @@ point_interval(randn(2000); widths=[0.66, 0.95], point=:median, interval=:hdi)
 # Vector of NamedTuples: (value, lower, upper, width, point, interval)
 ```
 
+## Named dimensions and categories
+
+A chain records only `a[1,2]`; that axis 1 is trials and axis 2 is arms lives in
+the model. [`RVars.jl`](https://github.com/karimn/RVars.jl) lets you declare that
+when parameters are extracted, and DistributionPlots uses it for tick labels,
+colours, grouping and facets.
+
+```julia
+p = RVar(chn; dims   = (a = (:trial, :arm),),
+              labels = (arm = ["control", "drug"],))
+```
+
+### One axis
+
+A single Makie axis can show one dimension, so pass `dim` to say which:
+
+```julia
+fig, ax, plt = halfeye(p.a; dim = :arm)   # the other dimensions are pooled
+ax.xticks = dimticks(p.a, :arm)           # ("control", "drug")
+```
+
+`dimticks(x, dim)` takes labels from `RVars.dimlabels`, falling back to
+`variables(x)` for a named vector random variable and to integer positions
+otherwise. Ticks must be applied by the caller because a Makie recipe draws into
+a `Scene` and cannot reach the enclosing `Axis`.
+
+A rank-2 or higher `RVar` without `dim` is an error naming the dimensions it
+found, rather than a silently mis-flattened plot.
+
+### Colours, grouping and facets
+
+Faceting and legends belong to the grammar layer, not to a recipe — so go
+through `RVars.gather_draws`, which flattens a labelled `RVar` into a long table
+whose columns are named after the dimensions and hold the categories themselves:
+
+```julia
+using AlgebraOfGraphics
+
+tbl = RVars.gather_draws(p.a)   # (trial, arm, chain, draw, value)
+
+data(tbl) * mapping(:arm, :value; color = :arm, layout = :trial) *
+  visual(HalfEye) |> draw
+```
+
+Every facet, colour, legend entry, axis label and tick label there comes from the
+dimension names and labels. `mapping` accepts the usual AoG aesthetics —
+`color`, `layout`, `row`, `col`, `dodge` — and, mirroring ggdist's colour/fill
+split, `slab_color` tints the density independently of `color`, which drives the
+point and interval.
+
+Dodging needs `n_dodge` passed explicitly, because AoG calls a recipe once per
+group with a scalar `dodge` and never reports how many groups there are:
+
+```julia
+data(tbl) * mapping(:trial, :value; color = :arm, dodge = :arm) *
+  visual(HalfEye; n_dodge = 2) |> draw
+```
+
 ## AlgebraOfGraphics
 
 Loading `AlgebraOfGraphics` alongside `DistributionPlots` activates a package
-extension so `AlgebraOfGraphics.visual` can wrap our recipe types (e.g.
-`visual(Interval)`, `visual(HalfEye)`) inside an AoG spec. This is a minimal
-integration point — it registers the `aesthetic_mapping` AoG needs to place a
-recipe's positional arguments on the x/y axes — not a full set of AoG-native
-analyses; those are out of scope for v1. Our recipes' `convert_arguments`
-contract takes one positional argument (a distribution, a sample vector, or a
-vector of distributions), so map a single data column (e.g.
-`mapping(:y) * visual(Interval)`) rather than AoG's typical two-column
-`mapping(:x, :y)` pointlike form.
+extension registering, for every public recipe type, the `aesthetic_mapping` AoG
+uses to place arguments and attributes on aesthetics, and the `legend_elements`
+it needs to build a legend. Recipes take `(x, values)`, matching AoG's usual
+two-column `mapping(:x, :y)` form; the single-column `mapping(:y) *
+visual(Interval)` form also works and draws one distribution.
 
-Tested against AlgebraOfGraphics v0.13.1; its
-`aesthetic_mapping` API is not yet fully stable across releases, so pin or
-check compatibility if you hit `MethodError`/`aesthetic_mapping` errors on a
-different version.
+Tested against AlgebraOfGraphics v0.13.1; its `aesthetic_mapping` API is not yet
+fully stable across releases, so pin or check compatibility if you hit
+`MethodError`/`aesthetic_mapping` errors on a different version.
 
 ## Development
 
@@ -75,4 +135,8 @@ julia --project=test test/runtests.jl
 ## Notes
 
 - Chains support requires `using RVars` alongside `using MCMCChains`.
+- `halfeye(chn)` plots one distribution per scalar parameter. To get shaped
+  parameters with named dimensions, extract them first with
+  `rvars(chn; dims = ...)` and plot the resulting `RVar`.
+- Requires RVars 0.5.1+ (dimension names and labels, `gather_draws`).
 - Requires Julia 1.10+.

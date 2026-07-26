@@ -7,6 +7,14 @@ using KernelDensity
 using Tables
 using Makie
 
+"""
+    dimticks(x, dim = 1)
+
+Makie tick specification `(positions, labels)` for a labelled input. Implemented by
+the RVars extension — load `RVars` alongside `DistributionPlots` to use it.
+"""
+function dimticks end
+
 include("interface.jl")
 include("density.jl")
 include("intervals.jl")
@@ -18,6 +26,7 @@ include("recipes/dots.jl")
 include("recipes/lineribbon.jl")
 
 export asdist
+export dimticks
 export point_interval
 export slab_curve
 export dot_layout

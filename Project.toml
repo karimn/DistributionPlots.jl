@@ -22,9 +22,13 @@ DistributionPlotsMCMCChainsExt = ["MCMCChains", "RVars"]
 DistributionPlotsRVarsExt = "RVars"
 
 [compat]
+AlgebraOfGraphics = "0.13"
 Distributions = "0.25"
 KernelDensity = "0.6"
+MCMCChains = "6, 7"
 Makie = "0.24"
+# Dimension names and labels need RVars 0.5; gather_draws needs 0.5.1.
+RVars = "0.5.1"
 Statistics = "1"
 StatsBase = "0.34"
 Tables = "1"

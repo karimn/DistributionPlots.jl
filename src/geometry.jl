@@ -48,6 +48,37 @@ function _sideoffset(t, side::Symbol, which::Symbol)
     end
 end
 
+# Side-by-side placement within one position slot, matching Makie's barplot so a
+# dodged slab lines up with a dodged bar drawn on the same axis (same two formulas,
+# inlined rather than called because they are Makie internals).
+#
+# Returns (shift, shrink): how far to move this group's centre, and the factor its
+# width must shrink by so the groups sit side by side instead of on top of one
+# another — dodged bars narrow the same way.
+dodge_placement(::Nothing, n_dodge, dodge_gap, width) = (0.0, 1.0)
+function dodge_placement(dodge::Integer, n_dodge::Integer, dodge_gap, width)
+    n_dodge <= 1 && return (0.0, 1.0)
+    1 <= dodge <= n_dodge || throw(ArgumentError(
+        "dodge=$dodge is out of range for n_dodge=$n_dodge"))
+    dodge_width = (1 - (n_dodge - 1) * dodge_gap) / n_dodge
+    shift = ((dodge_width - 1) / 2 + (dodge - 1) * (dodge_width + dodge_gap)) * width
+    return (shift, dodge_width)
+end
+# `n_dodge` cannot be inferred when AlgebraOfGraphics drives the plot: it splits the
+# data by group and calls the recipe once per group, passing a *scalar* `dodge` and
+# leaving `n_dodge` automatic, so no single call can see how many groups there are.
+# Guessing would silently mis-size every group, so ask for it instead.
+dodge_placement(dodge::Integer, ::Nothing, dodge_gap, width) = throw(ArgumentError(
+    "dodge=$dodge was given without n_dodge, and the number of dodge groups cannot " *
+    "be inferred from a single group index. Pass n_dodge explicitly (e.g. " *
+    "visual(HalfEye; n_dodge=2) under AlgebraOfGraphics)."))
+# One plot call draws one dodge group, so a per-element dodge vector has no meaning
+# here — unlike barplot, where a single call draws many independently dodged bars.
+dodge_placement(dodge, n_dodge, dodge_gap, width) = throw(ArgumentError(
+    "dodge must be a single group index, got $(typeof(dodge)). Each plot call draws " *
+    "one dodge group; call the recipe once per group (which is what " *
+    "AlgebraOfGraphics does)."))
+
 function interval_segment(lower::Real, upper::Real; position::Real, orientation::Symbol=:vertical)
     o = Val(orientation)
     return (_pt(lower, position, o), _pt(upper, position, o))
