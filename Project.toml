@@ -1,7 +1,7 @@
 name = "DistributionPlots"
 uuid = "36a31c4c-737d-46e0-87c4-7dcdbef46ebe"
 authors = ["Karim Naguib"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
