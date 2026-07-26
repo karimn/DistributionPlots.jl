@@ -95,9 +95,14 @@ data(tbl) * mapping(:arm, :value; color = :arm, layout = :trial) *
 
 Every facet, colour, legend entry, axis label and tick label there comes from the
 dimension names and labels. `mapping` accepts the usual AoG aesthetics —
-`color`, `layout`, `row`, `col`, `dodge` — and, mirroring ggdist's colour/fill
-split, `slab_color` tints the density independently of `color`, which drives the
-point and interval.
+`color`, `layout`, `row`, `col`, `dodge`.
+
+ggdist's colour/fill split is spelled `color`/`slab_color` here: `color` drives
+the point and interval, `slab_color` the density, and the two map independently.
+So ggdist's `aes(fill = arm)` is `mapping(slab_color = :arm)`. The name follows
+the recipe's own `slab_type`/`slab_alpha`/`show_slab` vocabulary and Makie's
+`color`/`*color` convention — neither Makie nor AlgebraOfGraphics has a `fill`
+aesthetic.
 
 Dodging needs `n_dodge` passed explicitly, because AoG calls a recipe once per
 group with a scalar `dodge` and never reports how many groups there are:
