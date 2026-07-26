@@ -61,6 +61,21 @@ end
     tmp = tempname() * ".png"
     save(tmp, f)
     @test isfile(tmp)
+
+    # multi-width nesting (#5): the default is automatic per-width line weight,
+    # not one flat linewidth for every credible level
+    th = Makie.default_theme(nothing, SlabInterval)
+    @test th[:interval_linewidth][] === Makie.automatic
+    @test th[:point_size][] > 10   # bumped up for contrast against the interval
+
+    # a scalar still means "every width the same", pre-#5 behaviour
+    @test (slabinterval(randn(1500); interval_linewidth=4.0) isa Makie.FigureAxisPlot)
+    # a vector (one entry per distinct width) draws without error
+    @test (slabinterval(randn(1500); widths=[0.66, 0.95],
+                        interval_linewidth=[3.0, 9.0]) isa Makie.FigureAxisPlot)
+    # wrong-length vector is rejected loudly rather than silently mismatched
+    @test_throws ArgumentError slabinterval(randn(1500); widths=[0.66, 0.95],
+                                            interval_linewidth=[1.0, 2.0, 3.0])
 end
 
 @testset "children + pre-summarised" begin
