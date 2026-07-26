@@ -88,3 +88,32 @@ end
 
 point_marker(value::Real; position::Real, orientation::Symbol=:vertical) =
     _pt(value, position, Val(orientation))
+
+# Per-width line weight for nested credible intervals, plus the draw order they
+# belong in. ggdist's nested look comes from two things at once: the widest
+# (least certain) interval is thin and drawn first, so narrower ones layer on
+# top of it instead of being hidden inside it.
+#
+# `interval_linewidth` can be:
+#   - `Makie.automatic`: derive a thick-to-thin ramp, thickest for the
+#     narrowest width, thinnest for the widest.
+#   - a vector: one entry per distinct width, given in the same
+#     widest-to-narrowest order the intervals are drawn in.
+#   - a scalar: every width gets that same line weight (pre-#5 behaviour).
+function interval_linewidths(widths::AbstractVector{<:Real}, interval_linewidth)
+    sorted = sort(unique(Float64.(widths)); rev=true)   # widest (drawn first/back) → narrowest (last/front)
+    k = length(sorted)
+    if interval_linewidth isa AbstractVector
+        length(interval_linewidth) == k || throw(ArgumentError(
+            "interval_linewidth vector must have one entry per distinct width " *
+            "($k here), got $(length(interval_linewidth))"))
+        lws = Float64.(interval_linewidth)
+    elseif interval_linewidth === Makie.automatic
+        thick, thin = 8.0, 3.0
+        lws = k == 1 ? [(thick + thin) / 2] :
+              [thin + (thick - thin) * (i - 1) / (k - 1) for i in 1:k]
+    else
+        lws = fill(Float64(interval_linewidth), k)
+    end
+    return Dict(sorted[i] => lws[i] for i in 1:k)
+end

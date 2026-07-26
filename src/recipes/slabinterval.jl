@@ -65,8 +65,16 @@ _or_nothing(x) = x === Makie.automatic ? nothing : x
         slab_alpha = 0.7,
         colormap = :blues,
         colorrange = Makie.automatic,
-        interval_linewidth = 6,
-        point_size = 10,
+        # automatic: thicker for narrower (inner) widths, thinner for wider
+        # (outer) ones — ggdist's nested look. Pass a scalar to give every
+        # width the same weight, or a vector (one entry per distinct width,
+        # widest to narrowest) for full control.
+        interval_linewidth = Makie.automatic,
+        point_size = 16,
+        # a thin contrasting outline keeps the point legible when it shares
+        # its colour with the interval (e.g. via `mapping(color = ...)`)
+        point_strokewidth = 1.5,
+        point_strokecolor = :white,
         # Side-by-side groups within one position slot. AlgebraOfGraphics drives
         # these via the AesDodgeX aesthetic; see dodge_placement in geometry.jl for
         # why n_dodge has to be supplied rather than inferred.
@@ -96,9 +104,10 @@ function Makie.plot!(p::SlabInterval)
     lift(args, p.slab_type, p.interval, p.point, p.widths, p.orientation, p.side,
          p.justification, p.scale, p.normalize, p.trim, p.n, p.show_slab, p.show_interval,
          p.show_point, p.color, p.slab_color, p.slab_alpha, p.interval_linewidth, p.point_size,
+         p.point_strokewidth, p.point_strokecolor,
          p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists), st, iv, pt,
             ws, ori, side, just, sc, nrm, tr, n, sslab, sint, spoint, col, scol, salpha, ilw, psz,
-            dg, ndg, dgap, wdt
+            pstrokew, pstrokec, dg, ndg, dgap, wdt
 
         # One placement for the whole plot: AoG calls the recipe once per dodge group.
         # The shift applies to the position rather than to `justification`, which
@@ -117,6 +126,7 @@ function Makie.plot!(p::SlabInterval)
                 isempty(th) || (gmax = max(gmax, maximum(th)))
             end
         end
+        lws = interval_linewidths(ws, ilw)
         for (i, (pos0, d)) in enumerate(zip(positions, dists))
             pos = pos0 + shift
             # slab drawn first so the point/interval below render on top of it
@@ -129,14 +139,15 @@ function Makie.plot!(p::SlabInterval)
             end
             rows = point_interval(d; widths=ws, point=pt, interval=iv)
             if sint
-                for r in rows
+                # widest (thinnest) first, so narrower (thicker) intervals draw on top
+                for r in sort(rows; by=row -> row.width, rev=true)
                     a, b = interval_segment(r.lower, r.upper; position=pos, orientation=ori)
-                    linesegments!(p, [a, b]; linewidth=ilw, color=col)
+                    linesegments!(p, [a, b]; linewidth=lws[r.width], color=col)
                 end
             end
             if spoint && !isempty(rows)
                 scatter!(p, [point_marker(rows[1].value; position=pos, orientation=ori)];
-                         markersize=psz, color=col)
+                         markersize=psz, color=col, strokewidth=pstrokew, strokecolor=pstrokec)
             end
         end
     end
@@ -175,6 +186,7 @@ for (T, defs) in _CHILD_DEFAULTS
                 trim=p.trim, n=p.n, color=p.color, slab_color=p.slab_color, slab_alpha=p.slab_alpha,
                 colormap=p.colormap, colorrange=p.colorrange,
                 interval_linewidth=p.interval_linewidth, point_size=p.point_size,
+                point_strokewidth=p.point_strokewidth, point_strokecolor=p.point_strokecolor,
                 dodge=p.dodge, n_dodge=p.n_dodge, dodge_gap=p.dodge_gap, width=p.width)
             return p
         end

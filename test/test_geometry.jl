@@ -1,5 +1,6 @@
 using DistributionPlots
-using DistributionPlots: slab_polygon, interval_segment, point_marker, normalize_thickness
+using DistributionPlots: slab_polygon, interval_segment, point_marker, normalize_thickness,
+                         interval_linewidths
 # Makie is a dep of DistributionPlots but not a direct dep of test/Project.toml
 # (only CairoMakie is); re-export its binding into Main here, same pattern used
 # above for Tables/Statistics.
@@ -47,4 +48,26 @@ using Test
     @test_throws ArgumentError interval_segment(-1.0, 2.0; position=5.0, orientation=:diagonal)
     @test_throws ArgumentError point_marker(0.5; position=5.0, orientation=:diagonal)
     @test_throws ArgumentError slab_polygon(xs, th; position=5.0, orientation=:diagonal)
+end
+
+@testset "interval_linewidths" begin
+    # automatic: narrower width → thicker line, so credible levels nest visibly
+    lws = interval_linewidths([0.66, 0.95], Makie.automatic)
+    @test lws[0.66] > lws[0.95]
+
+    # a single width still gets a sensible (non-zero) automatic weight
+    lws1 = interval_linewidths([0.9], Makie.automatic)
+    @test lws1[0.9] > 0
+
+    # scalar behaves as before #5: every width gets the same weight
+    lwss = interval_linewidths([0.66, 0.95], 4.0)
+    @test lwss[0.66] == lwss[0.95] == 4.0
+
+    # vector: one entry per distinct width, in widest→narrowest order
+    lwsv = interval_linewidths([0.66, 0.95], [3.0, 9.0])
+    @test lwsv[0.95] == 3.0   # widest gets the first entry
+    @test lwsv[0.66] == 9.0  # narrowest gets the second entry
+
+    # vector length must match the number of distinct widths
+    @test_throws ArgumentError interval_linewidths([0.66, 0.95], [1.0, 2.0, 3.0])
 end

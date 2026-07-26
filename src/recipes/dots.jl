@@ -54,8 +54,10 @@ Makie.convert_arguments(::Type{<:Dots}, x::AbstractVector{<:Real}, y::AbstractVe
         color = :black,
         scale = 0.9,
         markersize = 6,
-        interval_linewidth = 6,
-        point_size = 10,
+        interval_linewidth = Makie.automatic,
+        point_size = 16,
+        point_strokewidth = 1.5,
+        point_strokecolor = :white,
         dodge = Makie.automatic,
         n_dodge = Makie.automatic,
         dodge_gap = 0.03,
@@ -68,11 +70,14 @@ function Makie.plot!(p::DotsInterval)
 
     lift(args, p.ndots, p.orientation, p.widths, p.point, p.interval, p.show_interval,
          p.show_point, p.scale, p.color, p.markersize, p.interval_linewidth, p.point_size,
+         p.point_strokewidth, p.point_strokecolor,
          p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists),
-            nd, ori, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz, dg, ndg, dgap, wdt
+            nd, ori, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz, pstrokew, pstrokec,
+            dg, ndg, dgap, wdt
 
         shift, shrink = dodge_placement(_or_nothing(dg), _or_nothing(ndg), dgap, wdt)
         sc = sc * shrink
+        lws = interval_linewidths(ws, ilw)
         for (pos0, d) in zip(positions, dists)
             pos = pos0 + shift
             lay = dot_layout(d; ndots=nd)
@@ -81,14 +86,15 @@ function Makie.plot!(p::DotsInterval)
 
             rows = point_interval(d; widths=ws, point=pt, interval=iv)
             if sint
-                for r in rows
+                # widest (thinnest) first, so narrower (thicker) intervals draw on top
+                for r in sort(rows; by=row -> row.width, rev=true)
                     a, b = interval_segment(r.lower, r.upper; position=pos, orientation=ori)
-                    linesegments!(p, [a, b]; linewidth=ilw, color=col)
+                    linesegments!(p, [a, b]; linewidth=lws[r.width], color=col)
                 end
             end
             if spoint && !isempty(rows)
                 scatter!(p, [point_marker(rows[1].value; position=pos, orientation=ori)];
-                         markersize=psz, color=col)
+                         markersize=psz, color=col, strokewidth=pstrokew, strokecolor=pstrokec)
             end
         end
     end
