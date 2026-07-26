@@ -49,6 +49,29 @@ point_interval(randn(2000); widths=[0.66, 0.95], point=:median, interval=:hdi)
 # Vector of NamedTuples: (value, lower, upper, width, point, interval)
 ```
 
+## Orientation
+
+The slab-interval family (`slabinterval`, `halfeye`, `eye`, `ccdfinterval`,
+`cdfinterval`, `gradientinterval`, `histinterval`, `slab`, `interval`,
+`pointinterval`, `spike`) and the dots family (`dots`, `dotsinterval`) take an
+`orientation` attribute, `:vertical` (default, value on the y-axis) or
+`:horizontal` (ggdist-style, value on the x-axis — the conventional layout for
+forest plots and the one that lets long category labels fit on the y-axis):
+
+```julia
+halfeye(x, values; orientation = :horizontal)
+```
+
+A horizontal plot is exactly the vertical one with coordinates swapped; an
+unrecognised `orientation` value throws `ArgumentError` naming the valid
+options rather than silently falling back to `:vertical`.
+
+Calling a recipe with `(category, value)` swapped the other way — passing
+values as the first argument and categories as the second — does not become
+horizontal; it collapses each observation into its own single-sample
+"distribution" and throws `ArgumentError` (each position ends up with exactly
+one observation, which can't form an interval or a slab).
+
 ## Named dimensions and categories
 
 A chain records only `a[1,2]`; that axis 1 is trials and axis 2 is arms lives in
@@ -124,6 +147,14 @@ visual(Interval)` form also works and draws one distribution.
 Tested against AlgebraOfGraphics v0.13.1; its `aesthetic_mapping` API is not yet
 fully stable across releases, so pin or check compatibility if you hit
 `MethodError`/`aesthetic_mapping` errors on a different version.
+
+**Limitation:** `orientation = :horizontal` is not usable through this
+extension. `aesthetic_mapping` is dispatched on the recipe *type* alone —
+AoG resolves which argument is `AesX` and which is `AesY` before any
+`visual(HalfEye; orientation = :horizontal)` attribute is available to look
+at, so the mapping can't be swapped per call. Outside AoG (calling
+`halfeye`/`dots`/etc. directly on a `Figure`/`Axis`), `orientation` works as
+documented above.
 
 ## Development
 

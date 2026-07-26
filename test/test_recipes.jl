@@ -105,6 +105,51 @@ end
     @test (dotsinterval(randn(1000)) isa Makie.FigureAxisPlot)
 end
 
+@testset "orientation" begin
+    CairoMakie.activate!()
+
+    # default orientation is :vertical for every family that carries the attribute
+    for R in (SlabInterval, Dots, DotsInterval)
+        th = Makie.default_theme(nothing, R)
+        @test haskey(th, :orientation)
+        @test th[:orientation][] == :vertical
+    end
+
+    # an unrecognised orientation throws naming the valid options rather than
+    # silently falling back to :vertical
+    @test_throws ArgumentError halfeye(randn(500); orientation=:sideways)
+    @test_throws ArgumentError dots(randn(500); orientation=:sideways)
+
+    # renders without error under :horizontal, for both families
+    @test (halfeye(randn(1500); orientation=:horizontal) isa Makie.FigureAxisPlot)
+    @test (pointinterval(randn(1500); orientation=:horizontal) isa Makie.FigureAxisPlot)
+    @test (dots(randn(500); orientation=:horizontal) isa Makie.FigureAxisPlot)
+    @test (dotsinterval(randn(500); orientation=:horizontal) isa Makie.FigureAxisPlot)
+
+    # a horizontal plot is the vertical one with coordinates swapped — checked on
+    # actual point coordinates via the pre-summarised `pointinterval`, whose
+    # linesegments!/scatter! calls land directly on the returned axis (not nested
+    # inside a recipe), matching the pattern used elsewhere in this file.
+    _, axv, _ = pointinterval([1.0, 2.0], [0.0, 1.0], [-1.0, 0.0], [1.0, 2.0])
+    _, axh, _ = pointinterval([1.0, 2.0], [0.0, 1.0], [-1.0, 0.0], [1.0, 2.0]; orientation=:horizontal)
+
+    lines_v = filter(p -> p isa Makie.LineSegments, axv.scene.plots)
+    lines_h = filter(p -> p isa Makie.LineSegments, axh.scene.plots)
+    @test length(lines_v) == length(lines_h) == 2
+    for (lv, lh) in zip(lines_v, lines_h)
+        segs_v, segs_h = lv[1][], lh[1][]
+        @test [Makie.Point2f(pt[2], pt[1]) for pt in segs_v] == segs_h
+    end
+
+    scats_v = filter(p -> p isa Makie.Scatter, axv.scene.plots)
+    scats_h = filter(p -> p isa Makie.Scatter, axh.scene.plots)
+    @test length(scats_v) == length(scats_h) == 2
+    for (sv, sh) in zip(scats_v, scats_h)
+        pv, ph = sv[1][][1], sh[1][][1]
+        @test Makie.Point2f(pv[2], pv[1]) == ph
+    end
+end
+
 @testset "lineribbon" begin
     CairoMakie.activate!()
     xgrid = collect(0.0:0.5:10.0)

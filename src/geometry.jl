@@ -22,6 +22,8 @@ end
 # `along` is the value-axis coordinate; `perp` is the thickness/position axis.
 _pt(along, perp, ::Val{:vertical}) = Point2f(perp, along)
 _pt(along, perp, ::Val{:horizontal}) = Point2f(along, perp)
+_pt(along, perp, ::Val{o}) where {o} = throw(ArgumentError(
+    "orientation must be :vertical or :horizontal, got :$o"))
 
 function slab_polygon(xs::AbstractVector{<:Real}, thickness::AbstractVector{<:Real};
                       position::Real, orientation::Symbol=:vertical,

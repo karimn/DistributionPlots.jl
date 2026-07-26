@@ -3,6 +3,7 @@ using Makie
 @recipe(Dots, data) do scene
     Attributes(
         ndots = 50,
+        orientation = :vertical,   # :vertical (value on y) or :horizontal (value on x)
         color = :black,
         scale = 0.9,
         markersize = 6,
@@ -19,15 +20,15 @@ end
 function Makie.plot!(p::Dots)
     args = p.data
 
-    lift(args, p.ndots, p.scale, p.color, p.markersize,
-         p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists), nd, sc, col, msz,
+    lift(args, p.ndots, p.orientation, p.scale, p.color, p.markersize,
+         p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists), nd, ori, sc, col, msz,
             dg, ndg, dgap, wdt
         shift, shrink = dodge_placement(_or_nothing(dg), _or_nothing(ndg), dgap, wdt)
         sc = sc * shrink
         for (pos0, d) in zip(positions, dists)
             pos = pos0 + shift
             lay = dot_layout(d; ndots=nd)
-            pts = [Point2f(pos + (y - 1) * lay.binwidth * sc, x) for (x, y) in zip(lay.x, lay.y)]
+            pts = [_pt(x, pos + (y - 1) * lay.binwidth * sc, Val(ori)) for (x, y) in zip(lay.x, lay.y)]
             scatter!(p, pts; markersize=msz, color=col)
         end
     end
@@ -44,6 +45,7 @@ Makie.convert_arguments(::Type{<:Dots}, x::AbstractVector{<:Real}, y::AbstractVe
 @recipe(DotsInterval, data) do scene
     Attributes(
         ndots = 50,
+        orientation = :vertical,   # :vertical (value on y) or :horizontal (value on x)
         show_interval = true,
         show_point = true,
         widths = [0.66, 0.95],
@@ -66,11 +68,11 @@ end
 function Makie.plot!(p::DotsInterval)
     args = p.data
 
-    lift(args, p.ndots, p.widths, p.point, p.interval, p.show_interval, p.show_point,
-         p.scale, p.color, p.markersize, p.interval_linewidth, p.point_size,
+    lift(args, p.ndots, p.orientation, p.widths, p.point, p.interval, p.show_interval,
+         p.show_point, p.scale, p.color, p.markersize, p.interval_linewidth, p.point_size,
          p.point_strokewidth, p.point_strokecolor,
          p.dodge, p.n_dodge, p.dodge_gap, p.width) do (positions, dists),
-            nd, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz, pstrokew, pstrokec,
+            nd, ori, ws, pt, iv, sint, spoint, sc, col, msz, ilw, psz, pstrokew, pstrokec,
             dg, ndg, dgap, wdt
 
         shift, shrink = dodge_placement(_or_nothing(dg), _or_nothing(ndg), dgap, wdt)
@@ -79,19 +81,19 @@ function Makie.plot!(p::DotsInterval)
         for (pos0, d) in zip(positions, dists)
             pos = pos0 + shift
             lay = dot_layout(d; ndots=nd)
-            pts = [Point2f(pos + (y - 1) * lay.binwidth * sc, x) for (x, y) in zip(lay.x, lay.y)]
+            pts = [_pt(x, pos + (y - 1) * lay.binwidth * sc, Val(ori)) for (x, y) in zip(lay.x, lay.y)]
             scatter!(p, pts; markersize=msz, color=col)
 
             rows = point_interval(d; widths=ws, point=pt, interval=iv)
             if sint
                 # widest (thinnest) first, so narrower (thicker) intervals draw on top
                 for r in sort(rows; by=row -> row.width, rev=true)
-                    a, b = interval_segment(r.lower, r.upper; position=pos, orientation=:vertical)
+                    a, b = interval_segment(r.lower, r.upper; position=pos, orientation=ori)
                     linesegments!(p, [a, b]; linewidth=lws[r.width], color=col)
                 end
             end
             if spoint && !isempty(rows)
-                scatter!(p, [point_marker(rows[1].value; position=pos, orientation=:vertical)];
+                scatter!(p, [point_marker(rows[1].value; position=pos, orientation=ori)];
                          markersize=psz, color=col, strokewidth=pstrokew, strokecolor=pstrokec)
             end
         end
