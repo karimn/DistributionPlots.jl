@@ -85,6 +85,9 @@ ref = [pdf(Normal(1 + 0.02randn(), 1.0), x) for _ in 1:800, x in xs]
 histquantiles(vals; nbins = 40, reference = (xs, ref))
 ```
 
+`orientation` works as above, but defaults to `:horizontal` (value on x, density on y),
+the usual layout of a histogram; `orientation = :vertical` puts the value on y.
+
 For a transformed axis, transform `vals` (and `lims`) first and pass `reference` as a
 density on that scale, Jacobian included.
 
