@@ -24,6 +24,7 @@ include("geometry.jl")
 include("recipes/slabinterval.jl")
 include("recipes/dots.jl")
 include("recipes/lineribbon.jl")
+include("recipes/histquantiles.jl")
 
 export asdist
 export dimticks
@@ -38,5 +39,6 @@ export halfeye, halfeye!, eye, eye!, ccdfinterval, ccdfinterval!, cdfinterval, c
        Slab, Interval, PointInterval, Spike
 export dots, dots!, dotsinterval, dotsinterval!, Dots, DotsInterval
 export lineribbon, lineribbon!, LineRibbon
+export histquantiles, histquantiles!, HistQuantiles
 
 end # module

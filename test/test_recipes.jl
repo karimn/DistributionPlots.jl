@@ -157,3 +157,33 @@ end
     perx = [randn(800) .* (0.2 + 0.1x) .+ sin(x) for x in xgrid]
     @test (lineribbon(xgrid, perx) isa Makie.FigureAxisPlot)
 end
+
+@testset "histquantiles" begin
+    CairoMakie.activate!()
+    D, P = 200, 300
+    vals = randn(D, P) .* 1.2 .+ randn(D)
+    @test histquantiles(vals) isa Makie.FigureAxisPlot
+
+    # density histogram integrates to 1 when lims cover all the data
+    edges, H = DistributionPlots.hist_density(vals, 20, (minimum(vals), maximum(vals)))
+    @test length(edges) == 21
+    @test size(H) == (D, 20)
+    @test all(sum(H; dims = 2) .* step(range(edges[1], edges[end]; length = 21)) .≈ 1)
+    # lims drop outside values but keep the full normalisation
+    _, Hl = DistributionPlots.hist_density(vals, 20, (-0.5, 0.5))
+    @test all(sum(Hl; dims = 2) .* (1 / 20) .< 1)
+
+    # stepped geometry follows the bars
+    x, y = DistributionPlots.stepped([0.0, 1.0, 2.0], [5.0, 7.0])
+    @test x == [0.0, 1.0, 1.0, 2.0]
+    @test y == [5.0, 5.0, 7.0, 7.0]
+
+    # reference overlay, mutating form, and bad shapes
+    xs = collect(range(-4, 4; length = 50))
+    ref = [exp(-x^2 / 2) / sqrt(2π) for _ in 1:D, x in xs]
+    fig = Figure(); ax = Axis(fig[1, 1])
+    p = histquantiles!(ax, vals; nbins = 30, lims = (-4, 4), reference = (xs, ref))
+    @test p isa HistQuantiles
+    @test length(p.plots) == 4 + 1 + 2     # four bands, median, reference band + line
+    @test_throws ArgumentError histquantiles(vals; reference = (xs[1:10], ref))
+end
