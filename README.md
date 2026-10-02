@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Makie recipes that mimic R's [`ggdist`](https://mjskay.github.io/ggdist/) —
-slab, interval, pointinterval, lineribbon, and the dots family — for visualizing
+slab, interval, pointinterval, lineribbon, histquantiles, and the dots family — for visualizing
 distributions and uncertainty. Plots [`RVars.jl`](https://github.com/karimn/RVars.jl)
 `RVar` samples, `Distributions.jl` distributions, `MCMCChains.Chains`, and
 raw sample vectors through one interface. **Built on Makie** (not Plots.jl).
@@ -71,6 +71,22 @@ values as the first argument and categories as the second — does not become
 horizontal; it collapses each observation into its own single-sample
 "distribution" and throws `ArgumentError` (each position ends up with exactly
 one observation, which can't form an interval or a slab).
+
+## Histogram quantiles
+
+`histquantiles` takes a draws × units matrix, bins each draw's units into a density
+histogram on shared edges, and draws nested 10–90 … 40–60 % bands plus the median per
+bin. `reference = (x, M)` overlays a per-draw density (draws × `length(x)`) as a band:
+
+```julia
+vals = randn(800, 496) .* 0.1 .+ 1
+xs = range(-2, 4; length = 200)
+ref = [pdf(Normal(1 + 0.02randn(), 1.0), x) for _ in 1:800, x in xs]
+histquantiles(vals; nbins = 40, reference = (xs, ref))
+```
+
+For a transformed axis, transform `vals` (and `lims`) first and pass `reference` as a
+density on that scale, Jacobian included.
 
 ## Named dimensions and categories
 
