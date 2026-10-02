@@ -187,14 +187,14 @@ end
     @test length(p.plots) == 4 + 1 + 2     # four bands, median, reference band + line
     @test_throws ArgumentError histquantiles(vals; reference = (xs[1:10], ref))
 
-    # orientation: default is :horizontal (value on x); :vertical swaps coordinates
-    @test histquantiles(vals).plot.orientation[] == :horizontal
+    # orientation: default is :vertical like every other recipe; :horizontal swaps coordinates
+    @test histquantiles(vals).plot.orientation[] == :vertical
     @test_throws ArgumentError histquantiles(vals; orientation = :sideways)
-    _, axh, ph = histquantiles(vals; nbins = 20)
-    _, axv, pv = histquantiles(vals; nbins = 20, orientation = :vertical)
+    _, axv, pv = histquantiles(vals; nbins = 20)
+    _, axh, ph = histquantiles(vals; nbins = 20, orientation = :horizontal)
     medh = first(filter(q -> q isa Makie.Lines, ph.plots))[1][]
     medv = first(filter(q -> q isa Makie.Lines, pv.plots))[1][]
-    @test [Makie.Point2f(pt[2], pt[1]) for pt in medh] == medv
+    @test [Makie.Point2f(pt[2], pt[1]) for pt in medv] == medh
     bandsh = filter(q -> q isa Makie.Band, ph.plots)
     bandsv = filter(q -> q isa Makie.Band, pv.plots)
     @test all(b -> b.direction[] == :x, bandsh)

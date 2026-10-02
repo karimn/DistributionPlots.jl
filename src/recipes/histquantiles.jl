@@ -5,7 +5,7 @@ const HISTQUANTILE_BANDS = ((0.1, 0.9, 0.2), (0.2, 0.8, 0.35), (0.3, 0.7, 0.5), 
 
 """
     histquantiles(vals; nbins = 40, lims = nothing, reference = nothing,
-                  orientation = :horizontal)
+                  orientation = :vertical)
 
 Betancourt-style histogram quantiles. `vals` is a draws × units matrix: each draw's
 units are binned into a density histogram on shared bin edges, then the 10–90, 20–80,
@@ -21,16 +21,16 @@ evaluated at `x` — as a 10–90 % band plus median. For a transformed axis, tr
 `vals` and `lims` beforehand and give `reference` as a density on that same scale
 (including any Jacobian).
 
-`orientation` follows the rest of the package: `:vertical` puts the value on the y-axis,
-`:horizontal` on the x-axis. The default is `:horizontal`, the usual layout of a
-histogram (value on x, density on y).
+`orientation` follows the rest of the package: `:vertical` (default) puts the value on
+the y-axis, `:horizontal` on the x-axis. Pass `orientation = :horizontal` for the usual
+histogram layout (value on x, density on y).
 """
 @recipe(HistQuantiles, vals) do scene
     Attributes(
         nbins = 40,
         lims = nothing,
         reference = nothing,
-        orientation = :horizontal,   # :vertical (value on y) or :horizontal (value on x)
+        orientation = :vertical,   # :vertical (value on y) or :horizontal (value on x)
         color = :firebrick,
         mediancolor = :darkred,
         medianwidth = 1.5,

@@ -82,11 +82,11 @@ bin. `reference = (x, M)` overlays a per-draw density (draws × `length(x)`) as 
 vals = randn(800, 496) .* 0.1 .+ 1
 xs = range(-2, 4; length = 200)
 ref = [pdf(Normal(1 + 0.02randn(), 1.0), x) for _ in 1:800, x in xs]
-histquantiles(vals; nbins = 40, reference = (xs, ref))
+histquantiles(vals; nbins = 40, reference = (xs, ref), orientation = :horizontal)
 ```
 
-`orientation` works as above, but defaults to `:horizontal` (value on x, density on y),
-the usual layout of a histogram; `orientation = :vertical` puts the value on y.
+`orientation` works as above (default `:vertical`, value on y); pass
+`orientation = :horizontal` for the usual histogram layout, value on x and density on y.
 
 For a transformed axis, transform `vals` (and `lims`) first and pass `reference` as a
 density on that scale, Jacobian included.
