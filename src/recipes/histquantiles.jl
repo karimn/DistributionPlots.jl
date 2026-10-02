@@ -4,7 +4,8 @@ using Makie
 const HISTQUANTILE_BANDS = ((0.1, 0.9, 0.2), (0.2, 0.8, 0.35), (0.3, 0.7, 0.5), (0.4, 0.6, 0.7))
 
 """
-    histquantiles(vals; nbins = 40, lims = nothing, reference = nothing)
+    histquantiles(vals; nbins = 40, lims = nothing, reference = nothing,
+                  orientation = :horizontal)
 
 Betancourt-style histogram quantiles. `vals` is a draws × units matrix: each draw's
 units are binned into a density histogram on shared bin edges, then the 10–90, 20–80,
@@ -19,12 +20,17 @@ normalised by all units, so it integrates to the share of units inside the range
 evaluated at `x` — as a 10–90 % band plus median. For a transformed axis, transform
 `vals` and `lims` beforehand and give `reference` as a density on that same scale
 (including any Jacobian).
+
+`orientation` follows the rest of the package: `:vertical` puts the value on the y-axis,
+`:horizontal` on the x-axis. The default is `:horizontal`, the usual layout of a
+histogram (value on x, density on y).
 """
 @recipe(HistQuantiles, vals) do scene
     Attributes(
         nbins = 40,
         lims = nothing,
         reference = nothing,
+        orientation = :horizontal,   # :vertical (value on y) or :horizontal (value on x)
         color = :firebrick,
         mediancolor = :darkred,
         medianwidth = 1.5,
@@ -55,21 +61,31 @@ colquantile(M, p) = [quantile(view(M, :, k), p) for k in axes(M, 2)]
 "Stepped x/y for a per-bin quantity, so bands follow the histogram bars."
 stepped(edges, y) = (repeat(edges; inner = 2)[2:end-1], repeat(y; inner = 2))
 
+# `band!` and `lines!` take the value along the axis named by the orientation
+_banddir(::Val{:horizontal}) = :x
+_banddir(::Val{:vertical}) = :y
+_banddir(::Val{o}) where {o} = throw(ArgumentError(
+    "orientation must be :vertical or :horizontal, got :$o"))
+
 function Makie.plot!(p::HistQuantiles)
+    dir = lift(o -> _banddir(Val(o)), p.orientation)
     hist = lift(p.vals, p.nbins, p.lims) do vals, nbins, lims
         hist_density(vals, nbins, lims)
     end
-    for (k, (a, b, α)) in enumerate(HISTQUANTILE_BANDS)
+    for (a, b, α) in HISTQUANTILE_BANDS
         pts = lift(hist) do (edges, H)
             x, lo = stepped(edges, colquantile(H, a))
             _, hi = stepped(edges, colquantile(H, b))
             (x, lo, hi)
         end
         band!(p, lift(first, pts), lift(t -> t[2], pts), lift(t -> t[3], pts);
-              color = lift(c -> (c, α), p.color))
+              direction = dir, color = lift(c -> (c, α), p.color))
     end
-    med = lift(h -> stepped(h[1], colquantile(h[2], 0.5)), hist)
-    lines!(p, lift(first, med), lift(last, med); color = p.mediancolor, linewidth = p.medianwidth)
+    med = lift(hist, p.orientation) do (edges, H), ori
+        x, y = stepped(edges, colquantile(H, 0.5))
+        [_pt(xi, yi, Val(ori)) for (xi, yi) in zip(x, y)]
+    end
+    lines!(p, med; color = p.mediancolor, linewidth = p.medianwidth)
 
     # empty vectors when there is no reference keep the plot objects (and layout) stable
     ref = lift(p.reference) do r
@@ -80,9 +96,11 @@ function Makie.plot!(p::HistQuantiles)
         (collect(Float64, x), colquantile(M, 0.1), colquantile(M, 0.9), colquantile(M, 0.5))
     end
     band!(p, lift(r -> r[1], ref), lift(r -> r[2], ref), lift(r -> r[3], ref);
-          color = lift(c -> (c, 0.25), p.referencecolor))
-    lines!(p, lift(r -> r[1], ref), lift(r -> r[4], ref);
-           color = p.referencecolor, linewidth = p.referencewidth)
+          direction = dir, color = lift(c -> (c, 0.25), p.referencecolor))
+    refline = lift(ref, p.orientation) do r, ori
+        [_pt(x, y, Val(ori)) for (x, y) in zip(r[1], r[4])]
+    end
+    lines!(p, refline; color = p.referencecolor, linewidth = p.referencewidth)
     return p
 end
 
